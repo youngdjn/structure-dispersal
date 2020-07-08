@@ -12,21 +12,26 @@ round.choose <- function(x, roundTo) {
 }
 
 ## Open the perimeters within which to place plots
-plot_perimeters <- st_read(data("regen/plot_layout/delta_plot_perimeters.gpkg"),stringsAsFactors=FALSE)
+plot_perimeters <- st_read(data("regen/plot_layout/boggs/boggs_plot_perimeters2.gpkg"),stringsAsFactors=FALSE) %>% st_transform(3310)
+plot_perimeters$subarea = 1:nrow(plot_perimeters)
+# ## Boggs only: buffer in to avoid boundary plots
+# plot_perimeters = st_buffer(plot_perimeters, -12)
+# plot_perimeters$subarea = c(1,1,1,1,1,1,2,2,3,3)
 
-## Make grid of points within them
+## Make grid of points within them # for Delta used 50 m
 plots = st_make_grid(plot_perimeters,cellsize=50,what="centers") %>% st_as_sf()
 
 plots_w_subunit = st_intersection(plots,plot_perimeters)
-plots_w_subunit$initial_numbers = 1:nrow(plots_w_subunit)
 
-st_write(plots_w_subunit, data("regen/plot_layout/delta_points_01_prethin.gpkg"), delete_dsn = TRUE)
+st_write(plots_w_subunit, data("regen/plot_layout/delta_points_02_prethin.gpkg"), delete_dsn = TRUE)
 
 
 ### Open the manually thinned plots
-plots = st_read(data("regen/plot_layout/delta_points_01_thinned_fewerfar.gpkg"))
+plots = st_read(data("regen/plot_layout/boggs/boggs_points_01_thinned.gpkg"))
 geom = st_coordinates(plots)
 plots = plots[!is.nan(geom[,1]),]
+
+plots$subarea = plots$subarea
 
 ## Round latitude to the nearest 20 so we can add increasing numbers within rows, then along rows
 plots$lat_round = st_coordinates(plots)[,2] %>% round.choose(25)
@@ -44,11 +49,14 @@ plots = plots %>%
   mutate(field_id = str_c(subarea,field_id))
   
 ## write
-st_write(plots, data("regen/plot_layout/delta_points_01_forfield.gpkg"), delete_dsn = TRUE)
+plots$name = plots$field_id
+plots$Name = plots$field_id
+plots$id = plots$field_id
+st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/boggs/boggs_plots_01.kml"), delete_dsn = TRUE)
 
 ## make and write a 300 m buffer for GPS flight
 plots_buffer = plots %>% st_union %>% st_buffer(300)
-st_write(plots_buffer %>% st_transform(4326),data("regen/plot_layout/forfield/delta_project_buffer.kml"))
+st_write(plots_buffer %>% st_transform(4326),data("regen/plot_layout/forfield/boggs_project_buffer.kml"))
 
 
 
@@ -79,8 +87,8 @@ plots_geo$lat = st_coordinates(plots_geo)[,2]
 plots_geo$lon = st_coordinates(plots_geo)[,1]
 plots_geo = plots_geo %>%
   select(id = field_id,lat,lon) %>%
-  mutate(lat = round(lat,5),
-         lon = round(lon,5)) %>%
+  mutate(lat = round(lat,6),
+         lon = round(lon,6)) %>%
   arrange(id)
 st_geometry(plots_geo) = NULL
-write_csv(plots_geo,data("regen/plot_layout/forfield/delta_plots_list.csv"))
+write_csv(plots_geo,data("regen/plot_layout/forfield/boggs/boggs_plots_list.csv"))

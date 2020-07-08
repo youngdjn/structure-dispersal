@@ -1,13 +1,13 @@
 library(sf)
 
-point = st_read("/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/delta_stemmap_center.geojson")
+point = st_read("/home/derek/Documents/data/str-disp_data/regen/plot_layout/boggs/boggs_stemmap_center.gpkg")
 
 points_albers = st_transform(point,3310)
 
 
 allcorners = NA
 
-for(i in 1:3) {
+for(i in 1:nrow(point)) {
   
   point = points_albers[i,]
   
@@ -35,11 +35,10 @@ allcenters$id = allcenters$name = paste0("c",1:nrow(allcenters))
 
 allpoints = rbind(allcorners,allcenters)
 
-st_write(allpoints,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/delta_stemmap_grid.kml")
-st_write(allpoints %>% st_transform(4326),"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/delta_stemmap_grid.geojson",delete_dsn = TRUE)
-st_write(allcorners,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/delta_stemmap_corners.kml")
-st_write(allcenters,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/delta_stemmap_centers.kml")
+# add z dimension
+allpoints = st_zm(allpoints, drop=FALSE, what = "Z")
+allpoints = allpoints %>% st_transform(4326)
 
-coords_w_z = st_coordinates(allpoints) %>% as.data.frame
-coords_w_z[,"Z"] = 0
-st_coordinates(allpoints) = coords_w_z
+st_write(allpoints,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/boggs/boggs_stemmap_grid.kml",delete_dsn = TRUE)
+st_write(allpoints,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/boggs/boggs_stemmap_grid.geojson",delete_dsn = TRUE)
+
