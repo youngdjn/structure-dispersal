@@ -12,22 +12,26 @@ round.choose <- function(x, roundTo) {
 }
 
 ## Open the perimeters within which to place plots
-plot_perimeters <- st_read(data("regen/plot_layout/boggs/boggs_plot_perimeters2.gpkg"),stringsAsFactors=FALSE) %>% st_transform(3310)
-plot_perimeters$subarea = 1:nrow(plot_perimeters)
+plot_perimeters <- st_read(data("regen/plot_layout/minerva/minerva_candidate_areas.gpkg"),stringsAsFactors=FALSE) %>% st_transform(3310)
+plot_perimeters$subarea = plot_perimeters$Name#1:nrow(plot_perimeters)
 # ## Boggs only: buffer in to avoid boundary plots
 # plot_perimeters = st_buffer(plot_perimeters, -12)
 # plot_perimeters$subarea = c(1,1,1,1,1,1,2,2,3,3)
 
 ## Make grid of points within them # for Delta used 50 m
-plots = st_make_grid(plot_perimeters,cellsize=50,what="centers") %>% st_as_sf()
+perims_focal = plot_perimeters %>% filter(Description == "")
+plots_denser = st_make_grid(perims_focal,cellsize=35,what="centers") %>% st_as_sf() %>% st_intersection(perims_focal)
 
-plots_w_subunit = st_intersection(plots,plot_perimeters)
+perims_focal = plot_perimeters %>% filter(Description == "b")
+plots_sparser = st_make_grid(perims_focal,cellsize=45,what="centers") %>% st_as_sf() %>% st_intersection(perims_focal)
 
-st_write(plots_w_subunit, data("regen/plot_layout/delta_points_02_prethin.gpkg"), delete_dsn = TRUE)
+plots_w_subunit = rbind(plots_denser,plots_sparser)
+
+st_write(plots_w_subunit, data("regen/plot_layout/minerva/minerva_points_01_prethin.gpkg"), delete_dsn = TRUE)
 
 
 ### Open the manually thinned plots
-plots = st_read(data("regen/plot_layout/boggs/boggs_points_01_thinned.gpkg"))
+plots = st_read(data("regen/plot_layout/minerva/minerva_points_01_prethin.gpkg"))
 geom = st_coordinates(plots)
 plots = plots[!is.nan(geom[,1]),]
 
@@ -52,7 +56,7 @@ plots = plots %>%
 plots$name = plots$field_id
 plots$Name = plots$field_id
 plots$id = plots$field_id
-st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/boggs/boggs_plots_01.kml"), delete_dsn = TRUE)
+st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/minerva/minerva_plots_01.kml"), delete_dsn = TRUE)
 
 ## make and write a 300 m buffer for GPS flight
 plots_buffer = plots %>% st_union %>% st_buffer(300)
@@ -60,24 +64,24 @@ st_write(plots_buffer %>% st_transform(4326),data("regen/plot_layout/forfield/bo
 
 
 
-
-
-## make the circular stem map plot boundaries
-stemmap_center = st_read(data("regen/plot_layout/delta_stemmap_center2.gpkg")) %>% st_transform(3310)
-stemmap_perim = st_buffer(stemmap_center,60)
-stemmap_perim$id = 1:nrow(stemmap_perim)
-
-## save the plot bounds, stem map centers, plots, project area as KML for export to device
-st_write(stemmap_center %>% st_transform(4326), data("regen/plot_layout/forfield/delta_stemmap_center.geojson"), delete_dsn = TRUE)
-st_write(stemmap_center %>% st_transform(4326), data("regen/plot_layout/forfield/delta_stemmap_center.kml"), delete_dsn = TRUE)
-st_write(stemmap_perim %>% st_transform(4326), data("regen/plot_layout/forfield/delta_stemmap_perim.kml"), delete_dsn = TRUE)
-
-plots = st_read(data("regen/plot_layout/delta_points_01_forfield.gpkg"))
-plots = plots %>%
-  mutate(id = field_id,
-         name = field_id)
-st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/delta_plots_01.geojson"), delete_dsn = TRUE)
-st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/delta_plots_01.kml"), delete_dsn = TRUE)
+# 
+# 
+# ## make the circular stem map plot boundaries
+# stemmap_center = st_read(data("regen/plot_layout/delta_stemmap_center2.gpkg")) %>% st_transform(3310)
+# stemmap_perim = st_buffer(stemmap_center,60)
+# stemmap_perim$id = 1:nrow(stemmap_perim)
+# 
+# ## save the plot bounds, stem map centers, plots, project area as KML for export to device
+# st_write(stemmap_center %>% st_transform(4326), data("regen/plot_layout/forfield/delta_stemmap_center.geojson"), delete_dsn = TRUE)
+# st_write(stemmap_center %>% st_transform(4326), data("regen/plot_layout/forfield/delta_stemmap_center.kml"), delete_dsn = TRUE)
+# st_write(stemmap_perim %>% st_transform(4326), data("regen/plot_layout/forfield/delta_stemmap_perim.kml"), delete_dsn = TRUE)
+# 
+# plots = st_read(data("regen/plot_layout/delta_points_01_forfield.gpkg"))
+# plots = plots %>%
+#   mutate(id = field_id,
+#          name = field_id)
+# st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/delta_plots_01.geojson"), delete_dsn = TRUE)
+# st_write(plots %>% st_transform(4326), data("regen/plot_layout/forfield/delta_plots_01.kml"), delete_dsn = TRUE)
 
 
 
@@ -91,4 +95,4 @@ plots_geo = plots_geo %>%
          lon = round(lon,6)) %>%
   arrange(id)
 st_geometry(plots_geo) = NULL
-write_csv(plots_geo,data("regen/plot_layout/forfield/boggs/boggs_plots_list.csv"))
+write_csv(plots_geo,data("regen/plot_layout/forfield/minerva/minerva_plots_list.csv"))
