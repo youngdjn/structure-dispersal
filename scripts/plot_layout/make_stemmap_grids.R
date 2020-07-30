@@ -1,6 +1,6 @@
 library(sf)
 
-point = st_read("/home/derek/Documents/data/str-disp_data/regen/plot_layout/minerva/minerva_stemmaps.gpkg")
+point = st_read("/home/derek/Documents/data/str-disp_data/regen/plot_layout/eiler/eiler_stemmaps.gpkg")
 
 points_albers = st_transform(point,3310)
 
@@ -39,8 +39,8 @@ allpoints = rbind(allcorners,allcenters)
 allpoints = st_zm(allpoints, drop=FALSE, what = "Z")
 allpoints = allpoints %>% st_transform(4326)
 
-st_write(allcenters,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/minerva/minerva_stemmap_centers.kml",delete_dsn = TRUE)
-st_write(allcorners,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/minerva/minerva_stemmap_corners.kml",delete_dsn = TRUE)
+st_write(allcenters,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/eiler/eiler_stemmap_centers.kml",delete_dsn = TRUE)
+st_write(allcorners,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/eiler/eiler_stemmap_corners.kml",delete_dsn = TRUE)
 
-st_write(allpoints,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/minerva/minerva_stemmap_grid.geojson",delete_dsn = TRUE)
+st_write(allpoints,"/home/derek/Documents/data/str-disp_data/regen/plot_layout/forfield/eiler/eiler_stemmap_grid.geojson",delete_dsn = TRUE)
 
