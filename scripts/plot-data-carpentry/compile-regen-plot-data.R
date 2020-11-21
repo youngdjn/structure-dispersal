@@ -14,6 +14,7 @@ source(here("scripts/convenience_functions.R"))
 ds_plot = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="plot")
 ds_seedsource = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="seed_source")
 ds_basestation = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="base_station")
+ds_species = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="seedl_cone", col_types="text")
 kb1 = read_excel(data("surveys/main/unprocessed/kobo/plot_survey_-_all_versions_-_labels_-_2020-10-26-00-30-55.xlsx"))
 kb2 = read_excel(data("surveys/main/unprocessed/kobo/plot_survey_v2_-_latest_version_-_labels_-_2020-10-26-00-34-21.xlsx"))
 
@@ -396,24 +397,125 @@ d = d %>%
   select(-lat_approx,-lon_approx)
 
 
-## Pull in emlid plot loc data
-## Pull in planned plot loc data
-## Prepare a plot loc offset file to use when using planned plot loc based on comments about plot shifted (may need to check Valley datasheets for that)
-
-## Make sure there is good matching plot - emlid, and each field plot has a planned loc.
-
-## Make sure the emlid loc is close to the planned loc
-## Make sure the kobo loc is close to the emlid loc
+#### !!!!Make sure the kobo loc (or photo loc if not kobo data) is close to the emlid loc
 
 
+#### Species-specific data ####
+
+## Initial cleaning
+ds_species = ds_species %>%
+  mutate(plot_id = plot_id %>% as.integer %>% as.character) %>%
+  mutate(across(all_of(c("species","all_year_after")),toupper)) %>%
+  mutate(all_year_after = ifelse(is.na(all_year_after),"N",all_year_after)) %>% # if it was blank, assume it's a N
+  mutate(all_year_after = ifelse(all_year_after %in% c("MISSING","U"),NA,all_year_after)) %>%
+  mutate(all_year_after = ifelse(all_year_after == "NO","N",all_year_after)) %>%
+  mutate(all_year_after = ifelse(all_year_after == "YES","Y",all_year_after)) %>%
+  mutate(across(starts_with(c("seedl_","cones_")),as.numeric)) %>%
+  mutate(across(starts_with(c("seedl_","cones_")),~ifelse(is.na(.),0,.))) %>%
+## If we are on a lumped count category, replace with the midpoint
+  mutate(across(starts_with(c("seedl_","cones_")),~recode(.,
+                                                                 `25` = 37,
+                                                                 `50` = 62,
+                                                                 `75` = 87,
+                                                                 `100` = 125,
+                                                                 `150` = 175,
+                                                                 `200` = 250,
+                                                                 `300` = 350,
+                                                                 `400` = 450,
+                                                                 `500` = 550,
+                                                                 `600` = 650,
+                                                                 `700` = 750,
+                                                                 `800` = 850,
+                                                                 `900` = 950,
+                                                                 `1000` = 1050)))
+
+## Make a total cones column and delete undistinguished
+ds_species = ds_species %>%
+  mutate(cones_total = cones_undistinguished + cones_weathered + cones_new) %>%
+  #if there are undistinguished cones, then weathered and new are NA
+  mutate(across(all_of(c("cones_weathered","cones_new")),~ifelse(cones_undistinguished > 0,NA,.))) %>%
+  select(-cones_undistinguished)
+
+#### Make columns “seedlings_total” and “seedlings_analyze” which for delta is 0+1 and for others is just 1.
+## For that, first need to pull in the survey date
+dates = d %>% select(fire,plot_id,date)
+ds_species = left_join(ds_species,dates)
+
+
+## See which seedling records don't have a plot with them
+sp_without_plot = ds_species %>%
+  filter(is.na(date))
+
+## Remove species records without accompanying plot record
+ds_species = ds_species %>% filter(!is.na(date))
+
+ds_species = ds_species %>%
+  mutate(seedl_total = seedl_count_1yr_plus + seedl_count_0yr) %>%
+  mutate(seedl_analyze = ifelse(fire == "Delta",seedl_total,seedl_count_1yr_plus)) %>%
+  select(-seedl_count_0yr)
+
+## Make sure there is not more than one record per plot per species
+sp_dup = ds_species %>%
+  group_by(fire,plot_id,species) %>%
+  summarize(n = n())
+
+
+## Need to drop Chips 5002 because there were two datasheets with 5002 and only one kobo record; no way to know which one was right; other was probably 6002.
+ds_species = ds_species %>%
+  filter(!(fire == "Chips" & plot_id == "5002"))
+ds_plot = ds_plot %>%
+  filter(!(fire == "Chips" & plot_id == "5002"))
+
+ 
+## Pull in seed distance to species file
+ds_seedsource_sp = ds_seedsource %>%
+  filter(!(species %in% c("ANY", "MISSING", "PIAT","QUKE"))) %>%
+  mutate(plot_id = as.character(plot_id))
+  
+ds_sp = full_join(ds_species,ds_seedsource_sp,by=c("fire","plot_id","species"))
+
+## Aggregate PIPO and PIJE to PIPJ
+ds_sp = ds_sp %>%
+  mutate(species_coarse = recode(species,
+                                 PIPO = "PIPJ",
+                                 PIJE = "PIPJ"))
+
+ds_sp2 = ds_sp %>%
+  group_by(fire, plot_id, species_coarse) %>%
+  summarize(seedl_count_1yr_plus = sum(seedl_count_1yr_plus,na.rm=TRUE),
+            seedl_total = sum(seedl_total,na.rm=TRUE),
+            seedl_analyze = sum(seedl_analyze,na.rm=TRUE),
+            all_year_after = all(all_year_after == "Y"),
+            caches = paste(caches,collapse="_|_"),
+            cones_weathered = sum(cones_weathered,na.rm=TRUE),
+            cones_new = sum(cones_new,na.rm=TRUE),            
+            cones_total = sum(cones_total,na.rm=TRUE),
+            #date = median(date %>% as.character),
+            seed_distance = min(distance, na.rm=TRUE),
+            seed_distance_beyond = all(beyond[distance == min(distance, na.rm=TRUE)])
+            ) %>%
+  # replace all the Infs with NAs
+  mutate(seed_distance = ifelse(seed_distance == Inf,NA,seed_distance)) %>%
+  ## remove Chips 5005 which we can't tell which kobo record goes with it
+  filter(!(fire == "Chips" & plot_id == 5005))
+
+
+## Test: see if there are any species plots that don't match full plots: No
+sp2_summ = ds_sp2 %>%
+  group_by(fire,plot_id) %>%
+  summarize(nsp = n())
+plots_test = full_join(d,sp2_summ)
+
+
+## Export plot data and species (seedling and seed tree) data
+
+write_csv(ds_sp2,data("surveys/main/processed/species.csv"))
+write_csv(d,data("surveys/main/processed/plots.csv"))
 
 
 
-##!!!! for species, make sure that not more than one record per plot per species (or it means the plot id was entered wrong)
 
-## export species-specific counts and seed trees
 
-## add plot size to data table (just based on fire name)
 
 
 #### For stem maps:
@@ -426,3 +528,7 @@ d = d %>%
 # Shapefile of plots
 
 # Can we post-process base location using the emlid base logs?
+
+
+
+## Get plot photos, compare plot locs
