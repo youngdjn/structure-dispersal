@@ -310,7 +310,7 @@ emlid = emlid %>%
 
 
 
-## Pull in date
+## Pull in basestation based on date
 ds_basestation_foc = ds_basestation %>%
   select(fire,
          date,
