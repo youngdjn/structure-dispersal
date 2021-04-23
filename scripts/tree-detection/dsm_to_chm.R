@@ -21,7 +21,7 @@ dtm = raster(data("drone/metashape-products/delta_meta033_20210415T0728_dtm.tif"
 
 # DSM file
 dsm_file = data("drone/metashape-products/delta_meta033_20210415T0728_dsm.tif")
-dsm = rast(dsm_file)
+dsm = raster(dsm_file)
 
 # crop and mask DSM to project roi
 dsm = crop(dsm, focal_area %>% st_transform(crs(dsm)))
