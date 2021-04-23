@@ -2,7 +2,7 @@
 
 library(tidyverse)
 library(sf)
-library(terra)
+library(raster)
 library(here)
 
 
@@ -17,7 +17,7 @@ source(here("scripts/convenience_functions.R"))
 focal_area = st_read(data("drone/boundaries/delta-boundary-from-photos.gpkg")) #%>% st_transform(32610)
 
 # DTM
-dtm = rast(data("drone/metashape-products/delta_meta033_20210415T0728_dtm.tif"))
+dtm = raster(data("drone/metashape-products/delta_meta033_20210415T0728_dtm.tif"))
 
 # DSM file
 dsm_file = data("drone/metashape-products/delta_meta033_20210415T0728_dsm.tif")
@@ -41,7 +41,7 @@ dtm_interp = resample(dtm %>% projectRaster(crs=crs(dsm)),dsm)
 chm = dsm - dtm_interp
 
 # downscale to 0.12 m
-chm = project(chm,res=0.12, crs = "+proj=utm +zone=10 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs", method="bilinear")
+chm = projectRaster(chm,res=0.12, crs = "+proj=utm +zone=10 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs", method="bilinear")
 
 
 # create dir if doesn't exist, then write
