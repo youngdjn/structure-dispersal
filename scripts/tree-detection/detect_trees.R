@@ -4,8 +4,6 @@ library(sf)
 library(raster)
 library(ForestTools)
 library(here)
-library(purrr)
-library(furrr)
 library(tidyverse)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
