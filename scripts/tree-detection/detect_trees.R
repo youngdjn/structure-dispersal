@@ -36,6 +36,10 @@ c = 0
 chm_file = data("drone/processed-products/delta_meta033_20210415T0728_chm.tif")
 chm = raster(chm_file)
 
+cat("Fix extraneous vals")
+# if it's taller than 50, set to 50
+chm[chm>55] = 55.1 ## need to set this larger for future projects probably
+chm[chm < 0] = -0.1
 
 
 chm_res = res(chm) %>% mean
