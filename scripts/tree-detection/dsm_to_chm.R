@@ -45,6 +45,6 @@ chm = projectRaster(chm,res=0.12, crs = "+proj=utm +zone=10 +ellps=GRS80 +towgs8
 
 
 # create dir if doesn't exist, then write
-writeRaster(chm,data("drone/processed-products/delta_meta033_20210415T0728_dtm.tif"), overwrite=TRUE) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
+writeRaster(chm,data("drone/processed-products/delta_meta033_20210415T0728_chm.tif"), overwrite=TRUE) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
 
 gc()

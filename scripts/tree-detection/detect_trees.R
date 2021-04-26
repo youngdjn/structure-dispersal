@@ -24,9 +24,16 @@ a = -0.5
 b = 0.07
 c = 0
 
+### Parameters
+smooth = 1
+### Define params
+a = 0
+b = 0.06
+c = 0
+
 
 # find the chm file
-chm_file = data("scouting/chms/ChipsA_chm.tif")
+chm_file = data("drone/processed-products/delta_meta033_20210415T0728_chm.tif")
 chm = raster(chm_file)
 
 
@@ -38,6 +45,8 @@ pixels_smooth_3 = round(((1.5/chm_res)-1)/2)*2 + 1
 pixels_smooth_4 = round(((2/chm_res)-1)/2)*2 + 1
 
 chms = list()
+
+cat("Smoothing\n")
 
 if(0 %in% smooth) {
   chms[["smooth0"]] = chm
@@ -86,6 +95,7 @@ if(smooth == 0) {
   stop("Requested smoothed chm",smooth,"not provided.")
 }
 
+cat("Detecting trees\n")
 
 lin <- function(x){x^2*c + x*b + a} # window filter function to use in next step
 
@@ -104,16 +114,5 @@ treetops = as(treetops,"sf") %>% st_transform(4326)
 
 # create dir if doesn't exist, then write
 
-st_write(treetops,paste0(data("scouting/detected_trees/"),"ChipsA_treetops.geojson"), delete_dsn=TRUE, quiet=TRUE)
-
-
-
-
-
-
-
-
-
-
-
+st_write(treetops,paste0(data("drone/processed-products/detected-trees/"),"delta_meta033_20210415T0728_ttops-vwf142.gpkg"), delete_dsn=TRUE, quiet=TRUE)
 
