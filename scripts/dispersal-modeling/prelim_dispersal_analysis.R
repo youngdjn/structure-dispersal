@@ -56,18 +56,19 @@ sp_summ = species %>%
   #filter(species_coarse %in% c("PIPJ")) %>%
   group_by(fire, plot_id, species_coarse) %>%
   summarize(seedl_count = sum(seedl_analyze),
+            cone_count = sum(cones_total),
             seed_dist = min(seed_distance)) %>%
   ungroup() %>%
   mutate(seedl_count = ifelse(is.na(seedl_count),0,seedl_count)) %>%
   #group_by(fire,plot_id) %>%
-  complete(species_coarse, nesting(plot_id,fire), fill=list(seedl_count=0)) %>%
+  complete(species_coarse, nesting(plot_id,fire), fill=list(seedl_count=0, cone_count=0)) %>%
   filter(!is.na(species_coarse))
   # pivot_wider(names_from=species_coarse,values_from=c(seedl_count,seed_dist)) %>%
   # mutate(across(starts_with("seedl_count_"), na_to_zero))
   
 
 sp_summ_wide = sp_summ %>%   
-  pivot_wider(names_from=species_coarse,values_from=c(seedl_count,seed_dist)) %>%
+  pivot_wider(names_from=species_coarse,values_from=c(seedl_count,seed_dist, cone_count)) %>%
   mutate(across(starts_with("seedl_count_"), na_to_zero))
   
 
@@ -100,3 +101,15 @@ p = ggplot(d_plot %>% filter(fire=="Delta"),aes(x=n_trees_within_200m, y=seedl_d
 png(datadir("figures/prelim_fac_serot.png"))
 p
 dev.off()
+
+
+## Delta plots > 200 m from seed sources
+d_tmp = d_sf2 %>%
+  mutate(seedl_dens = seedl_count/0.02) %>%
+  filter(fire=="Delta",
+         n_trees_within_200m ==0) %>%
+  select(fire,plot_id,species_coarse,shrub_cover,seedl_count,cone_count)
+
+st_geometry(d_tmp) = NULL
+
+write_csv(d_tmp,datadir("temp/sp_cone_farSeedSource_forDavid.csv"))
