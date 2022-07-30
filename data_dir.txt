@@ -1,1 +1,1 @@
-/home/derek/Documents/data/str-disp_data/
+/Users/derek/Documents/repo_data_local/structure-dispersal_data/
