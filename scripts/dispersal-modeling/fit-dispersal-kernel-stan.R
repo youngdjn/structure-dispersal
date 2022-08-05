@@ -28,7 +28,7 @@ source(here("scripts/convenience_functions.R"))
 
 
 disp_mod <- "exppow"
-err_mod <- "nb"
+err_mod <- "pois"
 
 # Fixed parameters
 # dist_trap_max <- 10 # For seedlings, max. distance from a seed trap
@@ -52,7 +52,7 @@ priors_list <- setNames(map2(priors$prior_mean, priors$prior_sd, c),
 # Iterations and number of chains for Stan
 n_warmup <- 300
 n_iter <- 800 # includes warmup
-n_chains <- 4
+n_chains <- 6
 
 
 ## need tree data: years as columns, with the values of the column being the size. Also need id, x, and y
@@ -68,9 +68,14 @@ ba_from_height = function(h) {
   3.14 * (   ((h/a)^(1/b))   /2)^2
 }
 
+diam_from_height = function(h) {
+ ((h/a)^(1/b))
+}
+
 d = d %>%
   filter(height > 10) %>%
-  mutate(ba = ba_from_height(height))
+  mutate(ba = ba_from_height(height)) %>%
+  mutate(diam = diam_from_height(height))
 
 tree_data = d %>%
   select(id = treeID,
@@ -238,6 +243,8 @@ model_file <- paste("scripts/dispersal-modeling/stan-models/disp", disp_mod, err
                     sep = "_")
 res <- stan(model_file, data = data_list, chains = n_chains, 
             warmup = n_warmup, iter = n_iter, cores = n_chains)
+
+saveRDS(res,datadir("temp/mod_nb_diam2.rds"))
 
 # Export diagnostics, LOO results and parameter samples
 pars_keep <- c("alpha|inv_k|k_real|mu_disp|sd_disp|mu_beta|sd_beta|ri_theta")

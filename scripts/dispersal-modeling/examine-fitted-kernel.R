@@ -10,7 +10,7 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 source(here("scripts/convenience_functions.R"))
 
 
-res = readRDS(datadir("temp/mod.rds"))
+res = readRDS(datadir("temp/mod_nb_diam2.rds"))
 
 samples = extract(res)
 
@@ -51,14 +51,28 @@ coords = st_coordinates(d)
 d$x = coords[,1]
 d$y = coords[,2]
 
+
+a = 1.4721
+b = 0.6848
+ba_from_height = function(h) {
+  3.14 * (   ((h/a)^(1/b))   /2)^2
+}
+
+diam_from_height = function(h) {
+  ((h/a)^(1/b))
+}
+
 d = d %>%
-  filter(height > 10)
+  filter(height > 10) %>%
+  mutate(ba = ba_from_height(height),
+         diam = diam_from_height(height))
+
 
 tree_data = d %>%
   select(id = treeID,
          x,
          y,
-         `2020` = height)
+         `2020` = diam)
 
 st_geometry(tree_data) = NULL
 
@@ -167,7 +181,7 @@ ggplot(data=seed_data, aes(x=`2020`, y=predicted_seedl_fit)) +
 
 mae = mean(abs(seed_data$`2020` - seed_data$predicted_seedl_fit))
 mae
-# 1.39
+# 1.39 for height, pois
 
 
 
