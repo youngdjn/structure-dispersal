@@ -85,13 +85,13 @@ ggplot(d2 %>% filter(fire=="Delta"),aes(x=seed_dist_PIPJ, y=seedl_count_PIPJ,col
   theme_bw()
 
 d_plot = d_sf2 %>%
-  filter(species_coarse %in% c("PIPJ")) %>%
+  filter(species_coarse %in% c("ABCO")) %>%
   mutate(seedl_dens = seedl_count/0.02)
 p = ggplot(d_plot %>% filter(fire=="Delta"),aes(x=n_trees_within_200m, y=seedl_dens)) +
   geom_point(alpha=.3, size=2, color="cyan4") +
   
   theme_bw(25) +
-  lims(x = c(0,500),y = c(0,1000)) +
+  lims(x = c(0,500),y = c(0,750)) +
   labs(x="Number of seed trees within 200 m", y = "Yellow pine seedling density (no / ha)") +
   #scale_x_sqrt(limits=rev(c(0,500)),breaks=(c(0,100,200,300,400,500)), expand = c(0,0)) +
   geom_smooth(color="cyan4",method = "lm", formula = formula(y~sqrt(x)))
@@ -103,13 +103,38 @@ p
 dev.off()
 
 
+## Get the R2
+
+m = lm(seedl_dens ~ sqrt(n_trees_within_200m), data = d_plot %>% filter(fire=="Delta"))
+summary(m)
+
+
+
 ## Delta plots > 200 m from seed sources
-d_tmp = d_sf2 %>%
+plots_far_seedsource_delta = d_sf2 %>%
   mutate(seedl_dens = seedl_count/0.02) %>%
   filter(fire=="Delta",
          n_trees_within_200m ==0) %>%
   select(fire,plot_id,species_coarse,shrub_cover,seedl_count,cone_count)
 
-st_geometry(d_tmp) = NULL
+st_geometry(plots_far_seedsource_delta) = NULL
 
-write_csv(d_tmp,datadir("temp/sp_cone_farSeedSource_forDavid.csv"))
+write_csv(plots_far_seedsource_delta,datadir("temp/sp_cone_farSeedSource_forDavid.csv"))
+
+## Test correlation between cones and seedlings, when seed source far
+
+d_plot = plots_far_seedsource_delta %>%
+  filter(species_coarse == "PSME")
+
+ggplot(d_plot, aes(x=cone_count, y = seedl_count)) +
+         geom_jitter() +
+  lims(y=c(0,8))
+
+
+
+
+
+
+
+
+
