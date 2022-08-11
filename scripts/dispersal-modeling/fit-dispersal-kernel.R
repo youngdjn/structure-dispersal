@@ -4,6 +4,8 @@ library(sf)
 library(here)
 library(tidyverse)
 library(units)
+library(terra)
+library(raster)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
 
@@ -189,6 +191,16 @@ pred_dens = predict(m_nearest, type = "response")
 
 plot(plots_mod$sapling_density_ha_transf,pred_dens)
 
+ggplot(data=plots_mod, aes(x=sapling_density_ha_transf, y=pred_dens)) +
+  geom_abline(slope=1,intercept=0, color="blue") +
+  geom_point() +
+  lims(x=c(0,250), y=c(0,100)) +
+  labs(x = "Observed seedlings / ha", y = "Fitted seedlings / ha") +
+  theme_bw(20)
+
+ggsave(datadir("temp/fit_obs_dist.png"), width=6,height=5)
+
+
 mae = mean(abs(pred_dens - plots_mod$sapling_density_ha_transf))
 mae
 
@@ -203,11 +215,11 @@ dbh = function(h) {
   (h/a)^(1/b)
 }
 
-dbh_pred = dbh(h)
+dbh_pred = dbh(ttops$h)
 ba_pred = 3.14 * (dbh_pred/2)^2
 
-plot(h,dbh_pred)
-plot(h,ba_pred)
+plot(ttops$h,dbh_pred)
+plot(ttops$h,ba_pred)
 
 ba = function(h) {
   3.14 * (   ((h/a)^(1/b))   /2)^2
@@ -226,6 +238,8 @@ grid = rast(resolution = 30, ext = extent(ttops) , crs = "EPSG:3310")
 
 ba = terra::rasterize(ttops %>% vect,grid, field = "ba", fun = sum)
 
+writeRaster(ba, datadir("temp/ba_from_drone.tif"))
+
 # convert from sq cm / 900 sq m  to sq m / ha
 
 sqcm_sqm = ba / 900
@@ -240,6 +254,15 @@ fw <- raster::focalWeight(seeds, 45, type = "Gauss")
 dispersal <- terra::focal(seeds, fw, na.rm=TRUE)
 dispersal[is.na(dispersal)] = 0
 
+smoothed_ba = terra::focal(sqm_ha, fw, na.rm=TRUE)
+smoothed_ba[is.na(smoothed_ba)] = 0
+
+writeRaster(smoothed_ba,datadir("temp/smoothed_ba.tif"))
+
+ba[is.na(ba)] = 0
+writeRaster(ba,datadir("temp/ba.tif"), overwrite=TRUE)
+
+
 # extract seedfall at each plot
 plot_seeds = terra::extract(dispersal,plots_foc %>% vect, method="bilinear")[,2]
 plots_mod$seedrain = plot_seeds
@@ -252,7 +275,19 @@ pred_dens = predict(m_seedrain, type = "response")
 
 plot(pred_dens,plots_mod$sapling_density_ha_transf)
 
-mae = mean(abs(pred_dens - plots_mod$sapling_density_ha))
+ggplot(data=plots_mod, aes(x=sapling_density_ha_transf, y=pred_dens)) +
+  geom_abline(slope=1,intercept=0, color="blue") +
+  geom_point() +
+  #lims(x=c(0,250), y=c(0,100)) +
+  labs(x = "Observed seedlings / ha", y = "Fitted seedlings / ha") +
+  theme_bw(20)
+
+ggsave(datadir("temp/fit_obs_poscrpt.png"), width=6,height=5)
+
+
+
+
+mae = mean(abs(pred_dens - plots_mod$sapling_density_ha_transf))
 mae
 
 

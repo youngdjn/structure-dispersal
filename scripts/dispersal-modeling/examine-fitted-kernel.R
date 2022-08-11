@@ -10,7 +10,7 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 source(here("scripts/convenience_functions.R"))
 
 
-res = readRDS(datadir("temp/mod_nb_diam2.rds"))
+res = readRDS(datadir("temp/mod_pois_diam.rds"))
 
 samples = extract(res)
 
@@ -21,7 +21,7 @@ r = 100
 calc_kern = function(samples, r) {
   
   kern = samples$k / (2*pi * samples$a^2 * gamma(2/samples$k)) * exp(-(r / samples$a)^samples$k)
-
+  #kern = samples$k / (pi*samples$a) * (1 + r^2/samples$a)^(-1-samples$k)
 }
 
 r = 0:500
@@ -35,21 +35,28 @@ kern_summary = data.frame (r = 0:500,
                            lwr = apply(kern_out,1,quantile,probs=c(0.25)),
                            upr = apply(kern_out,1,quantile,probs=c(0.75)))
 
-ggplot(data = kern_summary, aes(x = r, y = fit)) +
-  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha=0.3) +
-  geom_line()
+#kern_summary_comb = bind_rows(kern_summary_exppow, kern_summary_2Dt)
+
+ggplot(data = kern_summary, aes(x = r, y = fit)) + # color=kernel, fill=kernel
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha=0.3, color=NA) +
+  geom_line(size=1) +
+  theme_bw(20) +
+  #scale_color_viridis_d(begin=0.3,end=0.7, name="Kernel") +
+  #scale_fill_viridis_d(begin=0.3,end=0.7, name="Kernel") +
+  labs(x="Distance (m)", y = "Kernel density")
 
 
+ggsave(datadir("temp/kern.png"), width=8, height=5)
 
 #### Predict seedlings at each plot ####
 
 
 ## need tree data: years as columns, with the values of the column being the size. Also need id, x, and y
 
-d = st_read(datadir("drone/processed-products/crater/Crater120m_20210122T1219_ttops_vwf196.gpkg")) %>% st_transform(32611)
-coords = st_coordinates(d)
-d$x = coords[,1]
-d$y = coords[,2]
+ttops = st_read(datadir("drone/processed-products/crater/Crater120m_20210122T1219_ttops_vwf196.gpkg")) %>% st_transform(32611)
+coords = st_coordinates(ttops)
+ttops$x = coords[,1]
+ttops$y = coords[,2]
 
 
 a = 1.4721
@@ -62,13 +69,13 @@ diam_from_height = function(h) {
   ((h/a)^(1/b))
 }
 
-d = d %>%
+ttops = ttops %>%
   filter(height > 10) %>%
   mutate(ba = ba_from_height(height),
          diam = diam_from_height(height))
 
 
-tree_data = d %>%
+tree_data = ttops %>%
   select(id = treeID,
          x,
          y,
@@ -130,6 +137,7 @@ r <- sqrt(dist_sq)
 predict_seedl_bytree = function(samples,tree_dist,tree_size) {
   
   kern = samples$k / (2*pi * samples$a^2 * gamma(2/samples$k)) * exp(-(tree_dist / samples$a)^samples$k)
+  #kern = samples$k / (pi*samples$a) * (1 + tree_dist^2/samples$a)^(-1-samples$k)
   
   b = exp(samples$mu_beta + samples$sd_beta * as.vector(samples$beta_off))
   
@@ -167,15 +175,24 @@ row.names(plot_seedl_preds) = NULL
 ## combine with observed seedl and compare
 
 seed_data = bind_cols(seed_data,plot_seedl_preds)
+seed_data$observed = seed_data$`2020`
 
 plot(`2020`~predicted_seedl_fit,data=seed_data)
 
+#fitted vs observed
 
-ggplot(data=seed_data, aes(x=`2020`, y=predicted_seedl_fit)) +
+seed_data_transf = seed_data %>%
+  mutate(observed = observed/0.09,
+         predicted_seedl_fit = predicted_seedl_fit/0.09)
+
+ggplot(data=seed_data_transf, aes(x=observed, y=predicted_seedl_fit)) +
+  geom_abline(slope=1,intercept=0, color="blue") +
   geom_point() +
-  geom_abline(slope=1,intercept=0) +
-  lims(x=c(0,25), y=c(0,10))
+  lims(x=c(0,250), y=c(0,100)) +
+  labs(x = "Observed seedlings / ha", y = "Fitted seedlings / ha") +
+  theme_bw(20)
 
+ggsave(datadir("temp/fit_obs_exppow.png"), width=6,height=5)
 
 ## calc the MAE
 
@@ -189,8 +206,57 @@ mae
 
 ## make raster of predictions
 
-## change the shape of the fecundity model
+# for every 30 cell in this landscape, make a "plot", calc mat of distances from trees, predict
 
-## try NB
+library(terra)
+
+# make a "negative buffer" of the focal area
+foc = st_read(datadir("temp/plots_buff2.gpkg"))
+bbox = st_bbox(foc) %>% st_as_sfc
+bbox = st_buffer(bbox,300)
+foc_inv = st_difference(bbox,foc)
+st_write(foc_inv,datadir("temp/foc_inv.gpkg"), delete_dsn = TRUE)
+
+grid = rast(resolution = 30, ext = extent(foc) , crs = "EPSG:26911")
+values(grid) = 1:ncell(grid)
+
+# make the cells into points
+
+pts = as.points(grid) %>% st_as_sf
+coords = st_coordinates(pts)
+pts$x = coords[,1]
+pts$y = coords[,2]
+
+st_geometry(pts) = NULL
 
 
+# Calculate tree-point distance matrix
+
+d2min <- 0.01
+
+dist_sq <- outer(pts$x, tree_data$x, "-")^2 + outer(pts$y, tree_data$y, "-")^2
+dist_sq[dist_sq < d2min] <- d2min
+
+r <- sqrt(dist_sq)
+
+plan(multisession, workers=8)
+
+plot_seedl_preds = future_map_dfr(1:nrow(pts), predict_seedl_plot)
+row.names(plot_seedl_preds) = NULL
+
+pts = bind_cols(pts,plot_seedl_preds)
+
+values(grid) = pts$predicted_seedl_fit
+
+writeRaster(grid,datadir("temp/pred_seedl_rast.tif"), overwrite=TRUE)
+
+## just for cartography/viz: buffer of within 10 m of a tree
+
+st_write(ttops %>% filter(height > 10), datadir("temp/ttops_foc.gpkg"), delete_dsn=TRUE)
+
+tree_buff = st_buffer(ttops,30) %>% st_union
+tree_buff = nngeo::st_remove_holes(tree_buff)
+tree_buff = st_buffer(tree_buff,-10)
+st_write(tree_buff,datadir("temp/tree_buff.gpkg"), delete_dsn=TRUE)
+
+## compare BA to GNN layer

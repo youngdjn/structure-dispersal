@@ -50,9 +50,9 @@ priors_list <- setNames(map2(priors$prior_mean, priors$prior_sd, c),
                         priors$param)
 
 # Iterations and number of chains for Stan
-n_warmup <- 300
-n_iter <- 800 # includes warmup
-n_chains <- 6
+n_warmup <- 600
+n_iter <- 3600 # includes warmup
+n_chains <- 8
 
 
 ## need tree data: years as columns, with the values of the column being the size. Also need id, x, and y
@@ -81,7 +81,7 @@ tree_data = d %>%
   select(id = treeID,
          x,
          y,
-         `2020` = ba)
+         `2020` = diam)
 
 st_geometry(tree_data) = NULL
 
@@ -244,7 +244,7 @@ model_file <- paste("scripts/dispersal-modeling/stan-models/disp", disp_mod, err
 res <- stan(model_file, data = data_list, chains = n_chains, 
             warmup = n_warmup, iter = n_iter, cores = n_chains)
 
-saveRDS(res,datadir("temp/mod_nb_diam2.rds"))
+saveRDS(res,datadir("temp/mod_2Dt_pois_diam.rds"))
 
 # Export diagnostics, LOO results and parameter samples
 pars_keep <- c("alpha|inv_k|k_real|mu_disp|sd_disp|mu_beta|sd_beta|ri_theta")
