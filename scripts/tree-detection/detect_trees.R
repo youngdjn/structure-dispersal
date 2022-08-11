@@ -76,3 +76,7 @@ treetops = st_intersection(treetops,plots_buff %>% st_transform(st_crs(treetops)
 ## Save treetops
 
 st_write(treetops,datadir(treetop_out_file), delete_dsn=TRUE, quiet=TRUE)
+
+
+## Save buffer
+st_write(plots_buff, datadir("temp/plots_buff2.gpkg"))
