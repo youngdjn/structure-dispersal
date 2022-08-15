@@ -79,13 +79,13 @@ d_sf2= left_join(d_sf,sp_summ)
 # write spatial for mapping
 st_write(d_sf,datadir("surveys/main/processed/spatial/plots_allseedlsp.gpkg"))
 
-
+# seedling count vs distance
 ggplot(d2 %>% filter(fire=="Delta"),aes(x=seed_dist_PIPJ, y=seedl_count_PIPJ,color=fire)) +
   geom_point() +
   theme_bw()
 
 d_plot = d_sf2 %>%
-  filter(species_coarse %in% c("ABCO")) %>%
+  filter(species_coarse %in% c("PIPJ")) %>%
   mutate(seedl_dens = seedl_count/0.02)
 p = ggplot(d_plot %>% filter(fire=="Delta"),aes(x=n_trees_within_200m, y=seedl_dens)) +
   geom_point(alpha=.3, size=2, color="cyan4") +
@@ -98,7 +98,7 @@ p = ggplot(d_plot %>% filter(fire=="Delta"),aes(x=n_trees_within_200m, y=seedl_d
   
 
 
-png(datadir("figures/prelim_fac_serot.png"))
+png(datadir("temp/prelim_fac_serot.png"))
 p
 dev.off()
 
@@ -109,6 +109,35 @@ m = lm(seedl_dens ~ sqrt(n_trees_within_200m), data = d_plot %>% filter(fire=="D
 summary(m)
 
 
+
+##### All fires: seedl vs distance to field-measured tree
+
+
+
+ggplot(data=d2 %>% filter(fire=="Delta"), aes(x = seed_source_any, y = all_seedl_count/0.02)) +
+  geom_point() +
+  lims(x = c(0,350), y = c(0,10000)) +
+  labs(x = "Seed source distance (m)",
+       y = "Seedlings per hectare") +
+  theme_bw(20)
+
+ggsave(datadir("temp/fac_serot_dist.png"))
+
+
+## All fires: far from seed source: relate cone dens to seedl dens
+
+d_far = d2 %>%
+  filter(seed_dist_PSME > 100)
+
+ggplot(data=d_far, aes(x = cone_count_PSME, y = seedl_count_PSME)) +
+  geom_point() +
+  lims(x = c(0,25),
+       y = c(0,10)) +
+  labs(x = "Number of cones",
+       y = "Number of seedlings") +
+  theme_bw(20)
+
+ggsave(datadir("temp/seedl_vs_cones.png"))
 
 ## Delta plots > 200 m from seed sources
 plots_far_seedsource_delta = d_sf2 %>%
@@ -124,13 +153,13 @@ write_csv(plots_far_seedsource_delta,datadir("temp/sp_cone_farSeedSource_forDavi
 ## Test correlation between cones and seedlings, when seed source far
 
 d_plot = plots_far_seedsource_delta %>%
-  filter(species_coarse == "PSME")
+  filter(species_coarse == "PIPJ")
 
 ggplot(d_plot, aes(x=cone_count, y = seedl_count)) +
          geom_jitter() +
   lims(y=c(0,8))
 
-
+''
 
 
 
