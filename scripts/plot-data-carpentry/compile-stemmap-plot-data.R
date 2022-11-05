@@ -11,44 +11,58 @@ source(here("scripts/convenience_functions.R"))
 
 #### Load data ####
 ### Datasheets and kobo
-ds_basestation = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="base_station")
-ds_species = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="seedl_cone", col_types="text")
-ds_stem_plot = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="stem_map_plot")
-ds_stem_tree = read_excel(data("surveys/main/unprocessed/datasheets/dispersal-data-entry.xlsx"),sheet="stem_map_tree")
+ds_basestation = read_excel(datadir("surveys/main/unprocessed/datasheets/dispersal-data-entry_2020-2021.xlsx"),sheet="base_station")
+ds_species = read_excel(datadir("surveys/main/unprocessed/datasheets/dispersal-data-entry_2020-2021.xlsx"),sheet="seedl_cone", col_types="text")
+ds_stem_plot = read_excel(datadir("surveys/main/unprocessed/datasheets/dispersal-data-entry_2020-2021.xlsx"),sheet="stem_map_plot")
+ds_stem_tree = read_excel(datadir("surveys/main/unprocessed/datasheets/dispersal-data-entry_2020-2021.xlsx"),sheet="stem_map_tree")
 
-base_shifts = read.csv(data("surveys/main/unprocessed/base_shifts/base_shifts.csv"))
+base_shifts = read.csv(datadir("surveys/main/unprocessed/base_shifts/base_shifts.csv"))
 
 ### Emlid data
-chips1 = st_read(data("surveys/main/unprocessed/emlid/Chips-stemmap.geojson")) %>% mutate(fire = "Chips", stem_map_id = "1", base_loc = 1)
-chips1_abco = st_read(data("surveys/main/unprocessed/emlid/Chips-abco-stemmap.geojson")) %>% mutate(fire = "Chips", stem_map_id = "1_ABCO", base_loc = 1)
-delta1 = st_read(data("surveys/main/unprocessed/emlid/Delta-trees.geojson")) %>% mutate(fire = "Delta", stem_map_id = "1", base_loc = 1)
-delta2 = st_read(data("surveys/main/unprocessed/emlid/Delta_trees_2.geojson")) %>% mutate(fire = "Delta", stem_map_id = "2", base_loc = 2)
-lassic1 = st_read(data("surveys/main/unprocessed/emlid/Lasic-stem-1.geojson")) %>% mutate(fire = "Lassic", stem_map_id = "1", base_loc = 1)
-lassic2 = st_read(data("surveys/main/unprocessed/emlid/Lassic-stem-2.geojson")) %>% mutate(fire = "Lassic", stem_map_id = "2", base_loc = 1)
-valley1 = st_read(data("surveys/main/unprocessed/emlid/Valley-trees2.geojson")) %>% mutate(fire = "Valley", stem_map_id = "1", base_loc = 2)
+chips1 = st_read(datadir("surveys/main/unprocessed/emlid/Chips-stemmap.geojson")) %>% mutate(fire = "Chips", stem_map_id = "1", base_loc = 1, year = 2020)
+chips1_abco = st_read(datadir("surveys/main/unprocessed/emlid/Chips-abco-stemmap.geojson")) %>% mutate(fire = "Chips", stem_map_id = "1_ABCO", base_loc = 1, year = 2020)
+delta1 = st_read(datadir("surveys/main/unprocessed/emlid/Delta-trees.geojson")) %>% mutate(fire = "Delta", stem_map_id = "1", base_loc = 1, year = 2020)
+delta2 = st_read(datadir("surveys/main/unprocessed/emlid/Delta_trees_2.geojson")) %>% mutate(fire = "Delta", stem_map_id = "2", base_loc = 2, year = 2020)
+lassic1 = st_read(datadir("surveys/main/unprocessed/emlid/Lasic-stem-1.geojson")) %>% mutate(fire = "Lassic", stem_map_id = "1", base_loc = 1, year = 2020)
+lassic2 = st_read(datadir("surveys/main/unprocessed/emlid/Lassic-stem-2.geojson")) %>% mutate(fire = "Lassic", stem_map_id = "2", base_loc = 1, year = 2020)
+valley1 = st_read(datadir("surveys/main/unprocessed/emlid/Valley-trees2.geojson")) %>% mutate(fire = "Valley", stem_map_id = "1", base_loc = 2, year = 2020)
 
-emlid = rbind(chips1,chips1_abco,delta1,delta2,lassic1,lassic2,valley1)
+emlid_2020 = rbind(chips1,chips1_abco,delta1,delta2,lassic1,lassic2,valley1) %>%
+  select(name, fire:year, collection.start, collection.end) %>%
+  st_transform(3310) %>%
+  st_zm()
+
+lassic_2021 = read_csv(datadir("surveys/main/unprocessed/emlid/Lassic stemmap 2 continued.csv")) %>% mutate(fire = "Lassic_3", stem_map_id = "2", base_loc = 3, year = 2021)
+delta_2021 = read_csv(datadir("surveys/main/unprocessed/emlid/Delta 4 (on phone its 3) Stem Map.csv")) %>% mutate(fire = "Delta_3", stem_map_id = "3", base_loc = 6, year = 2021)
+
+emlid_2021 = rbind(lassic_2021,delta_2021)
+emlid_2021 = st_as_sf(emlid_2021, coords=c("Longitude", "Latitude"), crs=4326) %>%
+  select(name = Name, fire:year, collection.start = "Averaging start", collection.end = "Averaging end") %>%
+  st_transform(3310) %>% st_zm()
+
+emlid = rbind(emlid_2020,emlid_2021)
 
 
 ## fix some emlid typos
-emlid[emlid$collection.start == "2020-07-16 00:08:47","name"] = 151 # first instance of 152 should be 151, not 152
-emlid[emlid$collection.start == "2020-07-02 21:36:24","name"] = 59 # second instance of 58 should be 59
-emlid[emlid$collection.start == "2020-07-02 22:00:37","name"] = 65 # first instance of 66 should be 65
-emlid[emlid$collection.start == "2020-08-20 23:50:48","name"] = 34 # renamed a lassic 43 (the one that came bt 33 and 35) to 34
+emlid[emlid$collection.start == "2020-07-15 23:08:47","name"] = 151 # first instance of 152 should be 151, not 152
+emlid[emlid$collection.start == "2020-07-02 20:36:24","name"] = 59 # second instance of 58 should be 59
+emlid[emlid$collection.start == "2020-07-02 21:00:37","name"] = 65 # first instance of 66 should be 65
+emlid[emlid$collection.start == "2020-08-20 22:50:48","name"] = 34 # renamed a lassic 43 (the one that came bt 33 and 35) to 34
 
 
 # remove an extraneous point
+# TODO: NOTE: make sure all points get removed (dates were getting shifted by an hour before)
 emlid = emlid %>%
   filter(name != "Point 90") %>%
-  filter(collection.start != "2020-07-02 21:23:17") %>% # remove the first delta 50
-  filter(collection.start != "2020-07-02 23:57:59") # remove the first delta 99
-  
+  filter(collection.start != "2020-07-02 20:23:17") %>% # remove the first delta 50
+  filter(collection.start != "2020-07-02 22:57:59") # remove the first delta 99
 
 ## get the datasheet stem map name in the right character format
 ds_stem_tree = ds_stem_tree %>%
   mutate(stem_map_id = stem_map_id %>% as.character %>% str_replace(fixed(".0"),""))
 
-
+## for delta 3, the stem map ID was 3, not 1
+ds_stem_tree[ds_stem_tree$fire == "Delta_3", "stem_map_id"] = "3"
 
 # Prep emlid data, with date in right format
 emlid = emlid %>%
@@ -75,10 +89,11 @@ emlid = emlid %>%
 
 
 ## Check for duplicates
-emlid_dup = emlid %>%
+emlid_nosp = emlid
+st_geometry(emlid_nosp) = NULL
+emlid_dup = emlid_nosp %>%
   group_by(point_name,fire,stem_map_id) %>%
   summarize(n = n())
-
 
 
 ## Shift emlid trees and plot centers based on base offsets
@@ -87,7 +102,7 @@ emlid_dup = emlid %>%
 emlid = left_join(emlid,base_shifts)
 
 # Temporary inspection of base locs
-st_write(emlid,data("surveys/main/intermediate/temp_stemmap_emlid.geojson"), delete_dsn = TRUE)
+# st_write(emlid,data("surveys/main/intermediate/temp_stemmap_emlid.geojson"), delete_dsn = TRUE)
 
 
 ## Get the geometries, to shift them (in m coord system)
@@ -181,7 +196,6 @@ tree_locs = tree_locs %>%
 ### Pull the coords into the tree data
 trees = left_join(ds_stem_tree,tree_locs, by=c("fire","stem_map_id","tree_id"))
 
-
 ### Make sure there are no duplicates
 trees_dup = trees %>%
   group_by(fire, stem_map_id, tree_id) %>%
@@ -193,14 +207,13 @@ trees_dup = trees %>%
 trees_sf = st_as_sf(trees,coords=c("x","y"),crs=4326)
 
 ## Write
-write_csv(trees,data("surveys/main/processed/stems.csv"))
-st_write(trees_sf,data("surveys/main/processed/stems.geojson"), delete_dsn = TRUE)
+write_csv(trees,datadir("surveys/main/processed/stems.csv"))
+st_write(trees_sf,datadir("surveys/main/processed/stems.geojson"), delete_dsn = TRUE)
 
 
 
 
-#####!!! Determine emlid Base 2 offsets relative to base 1 (Lassic and Eiler)
+#TODO: Determine emlid Base 2 offsets relative to base 1 (Lassic and Eiler)
 # Also apply to regen
-
 
 
