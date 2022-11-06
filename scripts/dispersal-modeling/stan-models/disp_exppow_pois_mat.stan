@@ -2,11 +2,11 @@
 
 functions {
     //  Calculate expected number of seeds per trap and year
-    matrix calc_mu(real a, real k, real mu_beta,
+    matrix calc_mu(real a, real k, row_vector beta_off, real mu_beta, real sd_beta,
                    data real trap_area, int nyear, int ntree, int ntrap, 
                    data matrix r, 
                    data matrix tree_size) { //REMOVED: rmax, size_density, and wgt
-        real b; // Fecundity parameter by year
+        row_vector[nyear] b; // Fecundity parameter by year
         matrix[ntrap, ntree] disp_kern; // Dispersal kernel
         // REMOVED: vector[ntrap] offplot; // Radial integral of disp. kern from rmax to inf.
         matrix[ntrap, nyear] mu;
@@ -24,9 +24,9 @@ functions {
         //}
     
     
-        b = exp(mu_beta); // REMOVED (from inside exp):  + sd_beta * beta_off
+        b = exp(mu_beta + sd_beta * beta_off);
         
-        mu = trap_area * rep_array(b, ntrap) .* (disp_kern * tree_size); // REMOVED:  + offplot * size_density
+        mu = trap_area * rep_matrix(b, ntrap) .* (disp_kern * tree_size); // REMOVED:  + offplot * size_density
         return(mu);
     }
 }
