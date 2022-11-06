@@ -7,26 +7,27 @@ functions {
                    data matrix r, 
                    data matrix tree_size) { //REMOVED: rmax, size_density, and wgt
         row_vector[nyear] b; // Fecundity parameter by year
-        matrix[ntrap, ntree] disp_kern; // Dispersal kernel
         // REMOVED: vector[ntrap] offplot; // Radial integral of disp. kern from rmax to inf.
+        matrix[ntrap, ntree] disp_kern; // Dispersal kernel
         matrix[ntrap, nyear] mu;
 
         for (j in 1:ntree) {
             for (i in 1:ntrap) {
-                disp_kern[i, j] = k / (2*pi() * square(a) * tgamma(2/k)) *  // REMOVED: wgt[i, j] *
+                disp_kern[i, j] = k / (2*pi() * square(a) * tgamma(2/k)) * // REMOVED: wgt[i, j] *
                                     exp(- pow(r[i, j] / a, k));
             }
         }
-        
+    
         // REMOVED:
         //for (i in 1:ntrap) {
         //    offplot[i] = 1 - gamma_cdf(pow(rmax[i] / a, k), 2/k, 1);   
         //}
     
-    
         b = exp(mu_beta + sd_beta * beta_off);
         
-        mu = trap_area * rep_matrix(b, ntrap) .* (disp_kern * tree_size); // REMOVED:  + offplot * size_density
+
+        mu = trap_area * rep_matrix(b, ntrap) .* (disp_kern * tree_size); // REMOVED (from within last parentheses):  + offplot * size_density
+
         return(mu);
     }
 }
@@ -87,38 +88,38 @@ model {
     beta_off ~ normal(0, 1);
     
     mu = calc_mu(a, k, beta_off, mu_beta, sd_beta, trap_area, nyear, ntree, 
-                 ntrap, r, tree_size); // REMOVED: wgt, rmax, size_density
+                 ntrap, r, tree_size);  // REMOVED: wgt, rmax, size_density
     
     nseed ~ poisson(to_vector(mu));
 }
 
-generated quantities {
-    vector[ntrap*nyear] log_lik;
-    int pval;
-    int totseeds;
-    int nnz;
-    real rmode;
-    real rmean;
-    
-    {
-        matrix[ntrap, nyear] mu;
-        vector[ntrap*nyear] mu_v;
-        int nseed_sim[ntrap*nyear];
-        vector[ntrap*nyear] ll_sim;
-        mu = calc_mu(a, k, beta_off, mu_beta, sd_beta, trap_area, nyear, ntree, 
-                     ntrap, r, tree_size); // REMOVED: wgt, rmax, size_density
-        mu_v = to_vector(mu);
-        nnz = 0;
-        for (i in 1:ntrap*nyear) {
-            log_lik[i] = poisson_lpmf(nseed[i] | mu_v[i]);
-            nseed_sim[i] = poisson_rng(mu_v[i]);
-            ll_sim[i] = poisson_lpmf(nseed_sim[i] | mu_v[i]);
-            if (nseed_sim[i] > 0) nnz = nnz + 1;
-        }
-        pval = sum(ll_sim) < sum(log_lik);
-        totseeds = sum(nseed_sim);
-    }
-    
-    rmode = 0;
-    rmean = a * tgamma(3 * inv_k) / tgamma(2 * inv_k);
-}
+// generated quantities {
+//     vector[ntrap*nyear] log_lik;
+//     int pval;
+//     int totseeds;
+//     int nnz;
+//     real rmode;
+//     real rmean;
+//     
+//     {
+//         matrix[ntrap, nyear] mu;
+//         vector[ntrap*nyear] mu_v;
+//         int nseed_sim[ntrap*nyear];
+//         vector[ntrap*nyear] ll_sim;
+//         mu = calc_mu(a, k, beta_off, mu_beta, sd_beta, trap_area, nyear, ntree, 
+//                      ntrap, r, tree_size);
+//         mu_v = to_vector(mu);
+//         nnz = 0;
+//         for (i in 1:ntrap*nyear) {
+//             log_lik[i] = poisson_lpmf(nseed[i] | mu_v[i]);
+//             nseed_sim[i] = poisson_rng(mu_v[i]);
+//             ll_sim[i] = poisson_lpmf(nseed_sim[i] | mu_v[i]);
+//             if (nseed_sim[i] > 0) nnz = nnz + 1;
+//         }
+//         pval = sum(ll_sim) < sum(log_lik);
+//         totseeds = sum(nseed_sim);
+//     }
+//     
+//     rmode = 0;
+//     rmean = a * tgamma(3 * inv_k) / tgamma(2 * inv_k);
+// }

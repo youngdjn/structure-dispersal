@@ -13,7 +13,7 @@ library(tidyr)
 library(dplyr)
 library(purrr)
 library(rstan)
-library(bayesplot) # for 'rhat' function
+#library(bayesplot) # for 'rhat' function
 library(here)
 library(sf)
 
@@ -21,11 +21,12 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 
 ## Convenience functions ####
 source(here("scripts/convenience_functions.R"))
+# ^ This defines the function 'datadir', which takes a string argument and prepends it with the path to the data directory.
+#   It allows you to make all the paths in the script be relative to the data directory.
 
 
 # source("data_subset_funcs.R") # Load data and subsetting functions
 # source("calc_dists_weights_func.R") # Functions for edge-correction weights
-
 
 disp_mod <- "exppow"
 err_mod <- "pois"
@@ -99,8 +100,7 @@ tree_size <- as.matrix(select(tree_data, -id, -x, -y))
 
 
 
-## need seedling data: a column for "year" with values being n seedlings, X, Y
-
+## Need to create seedling data in same format as Marchand: a column for "year" with values being n seedlings, X, Y
 
 d = st_read(datadir("/surveys/crater/intermediate/crater_foc.geojson")) %>% st_transform(32611)
 coords = st_coordinates(d)
@@ -237,14 +237,29 @@ data_list <- c(data_list, dist_weights, priors_list)
 # Check for missing data
 if (any(is.na(unlist(data_list)))) stop("Missing values in data.")
 
-# Run Stan model
+
+
+
+
+####### Run Stan model #######
 model_file <- paste("scripts/dispersal-modeling/stan-models/disp", disp_mod, err_mod, 
                     "mat.stan",
                     sep = "_")
+
 res <- stan(model_file, data = data_list, chains = n_chains, 
             warmup = n_warmup, iter = n_iter, cores = n_chains)
 
-saveRDS(res,datadir("temp/mod_2Dt_pois_diam.rds"))
+saveRDS(res,datadir("temp/temp_saved_mod.rds"))
+
+
+
+
+
+
+
+
+
+
 
 # Export diagnostics, LOO results and parameter samples
 pars_keep <- c("alpha|inv_k|k_real|mu_disp|sd_disp|mu_beta|sd_beta|ri_theta")
