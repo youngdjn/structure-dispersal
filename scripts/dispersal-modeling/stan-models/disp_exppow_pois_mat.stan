@@ -24,7 +24,7 @@ functions {
         //}
     
     
-        b = exp(mu_beta);
+        b = exp(mu_beta); // REMOVED (from inside exp):  + sd_beta * beta_off
         
         mu = trap_area * rep_array(b, ntrap) .* (disp_kern * tree_size); // REMOVED:  + offplot * size_density
         return(mu);
