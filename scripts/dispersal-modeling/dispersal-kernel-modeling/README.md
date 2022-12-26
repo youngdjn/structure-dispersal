@@ -6,7 +6,7 @@ See the top-level README for this repo for an overview of the data management ap
 
 In this folder, for each main task related to dispersal kernels (e.g., data prep, model fitting, model inspection), there are two code files: one that defines the necessary functions, and one that calls the functions (with the appropriate parameters) to accomplish the tasks. In each pair, the filename starts the same, but the file containng the functions ends in `_functions`. For example, `01_prep-data-for-model.R` and `01_prep-data-for-model_functions.R`. The `_functions` script does not need to be opened or run because it is sourced by the other script in the pair.
 
-To debug the code in the functions, especially when usin RStudio, I recomment inserting `browser()` at a line in the function before the suspected bug. When you call the function from any script, the code will run normally until it hits the `browser()` line and then pause, allowing you to inspect the environment at that stage and advance one line at a time (or resume normal execution).
+If you want to step through (or debug) the code in the functions, especially when using RStudio, I recommend inserting `browser()` at a in the function where you want to start stepping line by line. When you call the function from any script, the code will run normally until it hits the `browser()` line and then pause, allowing you to inspect the environment at that stage and advance one line at a time (or resume normal execution).
 
 The code files begin with a number indicating the order they are run in the workflow. The numbers are not sequential so as to leave room for other scripts in between.
 
