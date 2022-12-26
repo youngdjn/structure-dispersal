@@ -99,7 +99,6 @@ classifyGroundPoints: # (Meatshape: classifyGroundPoints) # classify points, IF 
     max_angle: 15.0 # Recommended: 15.0
     max_distance: 1.0 # Recommended: 1.0
     cell_size: 50.0 # Recommended: 50.0
-	
 
 buildDem: # (Metashape: buildDem, (optionally) classifyGroundPoints, exportRaster)
     enabled: True
