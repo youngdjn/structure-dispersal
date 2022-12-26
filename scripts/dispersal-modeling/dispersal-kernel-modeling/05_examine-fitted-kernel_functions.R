@@ -83,7 +83,7 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
   
   ## Summarize the kernel as the median and credible interval along a range of distances from the tree
   summarized_kernel = data.frame (r = r,
-                             fit = apply(kern_out,1,median),
+                             fit = apply(kern_out,1,mean),
                              lwr = apply(kern_out,1,quantile,probs=c(0.25)),
                              upr = apply(kern_out,1,quantile,probs=c(0.75)),
                              disp_mod = disp_mod)
@@ -126,7 +126,7 @@ predict_seedl_plot = function(samples, tree_plot_dists, overstory_tree_size) {
   ## Summarize the seed rain reaching the plot summed across all trees' contributions
   seeds_out_bytree = kern_out * fecundity_out # one row for each tree, one column for each model sample
   seeds_out = colSums(seeds_out_bytree)
-  summarized_seedlingshadow = data.frame(fit = median(seeds_out),
+  summarized_seedlingshadow = data.frame(fit = mean(seeds_out),
                                           lwr = quantile(seeds_out,probs=0.25),
                                           upr = quantile(seeds_out,probs=0.75))
   

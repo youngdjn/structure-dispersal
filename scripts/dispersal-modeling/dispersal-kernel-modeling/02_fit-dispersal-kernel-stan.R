@@ -20,7 +20,7 @@ fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to mod
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
-                n_iter = 2500,                             # stan iter includes warmup
+                n_iter = 2500,                             # stan iter, includes warmup
                 n_chains = 8,                             # stan n chains
                 n_cores = 8)                              # stan n cores
 
