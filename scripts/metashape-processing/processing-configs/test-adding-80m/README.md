@@ -1,0 +1,1 @@
+This folder has configs for testing whether it works to align 120m photos only, then later add 80m photos to that alignment without redoing the whole thing. The idea is that this might enable us to use RTK on 120 m, then collect 80 m without RTK and link it to the RTK photos
