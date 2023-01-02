@@ -96,7 +96,6 @@ buildPointCloud: # (Metashape: buildDepthMaps, buildPointCloud, (optionally) cla
     classify_ground_points: True # Should ground points be classified as a part of this step? Must be enabled (either here or in buildDem, below) if a digital terrain model (DTM) is needed either for orthomosaic or DTM export. Enabling here is an alternative to enabling as a component of buildDem (below). It depends on which stage you want the classification to be done at. If you already have a point cloud but it's unclassified, then don't do it as part of this stage as it would require computing the point cloud again.
     ## For point cloud export (exportPoints)
     export: True # Whether to export point cloud file.
-    format: Metashape.PointCloudFormatLAS # Recommended: PointCloudFormatLAS. The file format to export points in.
     classes: "ALL" # Recommended: "ALL". Point classes to export. Must be a list. Or can set to "ALL" to use all points. An example of a specific class is: Metashape.PointClass.Ground
 
 classifyGroundPoints: # (Meatshape: classifyGroundPoints) # classify points, IF SPECIFIED as a component of buildPointCloud (above) or buildDem (below). Must be enabled (either here or in buldDem, below) if a digital terrain model (DTM) is needed either for orthomosaic or DTM export. 
