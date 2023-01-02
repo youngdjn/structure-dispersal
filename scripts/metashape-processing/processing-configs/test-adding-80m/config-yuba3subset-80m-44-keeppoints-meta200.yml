@@ -67,7 +67,7 @@ alignPhotos: # (Metashape: matchPhotos, alignCameras)
     reset_alignment: False # Recommended: False. When running an alignment, if any of the photos were already aligned, should we keep that alignment? Or reset it so we align everything anew?
     generic_preselection: False # Recommended: True. When matching photos, use a much-coarsened version of each photo to narrow down the potential neighbors to pair?
     reference_preselection: True # Recommended: True. When matching photos, use the camera location data to narrow down the potential neighbors to pair?
-    reference_preselection_mode: Metashape.ReferenePreselectionSource # Recommended: True. When matching photos, use the camera location data to narrow down the potential neighbors to pair?
+    reference_preselection_mode: Metashape.ReferencePreselectionSource # Recommended: True. When matching photos, use the camera location data to narrow down the potential neighbors to pair?
 
 filterPointsUSGS:
     enabled: False
