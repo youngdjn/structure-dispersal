@@ -9,14 +9,14 @@ load_project: ""
 # The path to the directory of flight photos
 # If there are multiple photo folders, set path to the folder that contains all the photo folders
 # If there are no photos to add (e.g., this is an existing project that already has photos in it, set to an empty string ("")
-photo_path: "/ofo-data/tnc-yuba-2021/unit3-subset/80m"
+photo_path: "/ofo-share/tnc-yuba-2021/unit3-subset/80m"
 multispectral: False # Is this a multispectral photo set? If RGB, set to False.
 
 # Path for exports (e.g., points, DSM, orthomosaic) and processing log. Will be created if does not exist.
-output_path: "/ofo-data/str-disp_drone-data_products-202212meta184fast/testing-add-80m-to-existing/yuba3subset"
+output_path: "/ofo-share/str-disp_drone-data_products-202212meta184fast/testing-add-80m-to-existing/yuba3subset"
 
 # Path to save Metashape project file (.psx). Will be created if does not exist
-project_path: "/ofo-data/str-disp_drone-data_products-202212meta184fast/testing-add-80m-to-existing/yuba3subset"
+project_path: "/ofo-share/str-disp_drone-data_products-202212meta184fast/testing-add-80m-to-existing/yuba3subset"
 
 # The identifier for the run. Will be used in naming output files. Recommended to include a photoset name and processing parameter set name.
 run_name: "yuba3subset-800m-44-keeppoints-meta200"
