@@ -1,1 +1,1 @@
-/Users/derek/Documents/repo_data_local/structure-dispersal_data/
+/ofo-share/str-disp_drone-data-partial/
