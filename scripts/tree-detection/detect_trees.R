@@ -23,6 +23,9 @@ focal_area = "boundaries/delta-boundary-reduced.gpkg"
 chm_file = "chms/DeltaB-120m_20230310T1701_dsm.tif"
 treetop_out_file = "ttops/DeltaB-120m_20230310T1701_ttops.gpkg"
 
+focal_area = "boundaries/emerald-boundary-from-photos.gpkg"
+chm_file = "chms/emerald-120m_20230401T2215_chm.tif"
+treetop_out_file = "ttops/emerald-120m_20230401T2215_ttops.gpkg"
 
 
 # # get focal area
@@ -36,7 +39,8 @@ treetop_out_file = "ttops/DeltaB-120m_20230310T1701_ttops.gpkg"
 # 
 # # extra buffer for vwf, to be cropped out later
 # plots_buff_extra = st_buffer(plots_buff,20)
-plots_buff_extra = st_read(file.path(data_dir, focal_area))
+plots_buff = st_read(file.path(data_dir, focal_area))
+plots_buff_extra = st_buffer(plots_buff_extra, 5)
 
 # find the chm file
 chm = rast(file.path(data_dir, chm_file))

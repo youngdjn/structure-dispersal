@@ -14,13 +14,20 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 #### Inputs ####
 
 # Project area boundary
-focal_area = st_read(file.path(data_dir, "boundaries/delta-boundary-from-photos.gpkg"))
-
+focal_area = st_read(file.path(data_dir, "boundaries/delta-boundary-from-photos.gpkg")) |> st_buffer(5)
 # DTM
 dtm = rast(file.path(data_dir, "str-disp_drone-data_imagery-processed/outputs/120m-01/DeltaB-120m_20230310T1701_dtm.tif"))
-
 # DSM file
 dsm = rast(file.path(data_dir, "str-disp_drone-data_imagery-processed/outputs/120m-01/DeltaB-120m_20230310T1701_dsm.tif"))
+
+# Project area boundary
+focal_area = st_read(file.path(data_dir, "boundaries/emerald-boundary-from-photos.gpkg"))
+# DTM
+dtm = rast(file.path(data_dir, "str-disp_drone-data_imagery-processed/outputs/flattened-120m/emerald-120m_20230401T2215_dtm.tif"))
+# DSM file
+dsm = rast(file.path(data_dir, "str-disp_drone-data_imagery-processed/outputs/flattened-120m/emerald-120m_20230401T2215_dsm.tif"))
+
+
 
 
 # crop and mask DSM to project roi
@@ -44,6 +51,6 @@ chm = dsm - dtm_interp
 chm_proj = project(chm,y = "epsg:26910", res=0.12, method="bilinear")
 
 # create dir if doesn't exist, then write
-writeRaster(chm_proj,file.path(data_dir, "chms/DeltaB-120m_20230310T1701_chm.tif"), overwrite=TRUE) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
+writeRaster(chm_proj,file.path(data_dir, "chms/emerald-120m_20230401T2215_chm.tif"), overwrite=TRUE) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
 
 gc()

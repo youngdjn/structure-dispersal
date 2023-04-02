@@ -19,12 +19,21 @@ talltao_out_file = "taos/DeltaB-120m_20230310T1701_talltaos.gpkg"
 idptaos_out_file =  "taos/DeltaB-120m_20230310T1701_idptaos.shp"
 singletao_out_file =  "taos/DeltaB-120m_20230310T1701_singletao.gpkg"
 
+
+chm_file = "chms/emerald-120m_20230401T2215_chm.tif"
+treetop_file = "ttops/emerald-120m_20230401T2215_ttops.gpkg"
+tao_out_file = "taos/emerald-120m_20230401T2215_taos.shp"
+talltao_out_file = "taos/emerald-120m_20230401T2215_talltaos.shp"
+idptaos_out_file =  "taos/emerald-120m_20230401T2215_idptaos.shp"
+singletao_out_file =  "taos/emerald-120m_20230401T2215_singletao.shp"
+
+
 chm = rast(file.path(data_dir, chm_file),)
 ttops = st_read(file.path(data_dir, treetop_file))
 st_crs(ttops) = 26910
 
 mask_poly = st_buffer(ttops, 30) |> st_union()
-chm = crop(chm, vect(mask_poly))
+chm = mask(chm, vect(mask_poly))
   
 taos = silva2016(chm, ttops, max_cr_factor = 0.24, exclusion = 0.1)()
 
