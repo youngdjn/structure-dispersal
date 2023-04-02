@@ -9,7 +9,15 @@ in_photo_dir = file.path(data_dir, "str-disp_drone-data_imagery-missions/Emerald
 out_photo_dir = file.path(data_dir, "str-disp_drone-data_imagery-missions/Emerald/flattened-120m")
 prefix = "120m--"
 
-filenames = list.files(in_photo_dir, recursive = TRUE)
+in_photo_dir = file.path(data_dir, "str-disp_drone-data_imagery-missions/Emerald/90m")
+out_photo_dir = file.path(data_dir, "str-disp_drone-data_imagery-missions/Emerald/flattened-90m")
+prefix = "90m--"
+
+# in_photo_dir = file.path(data_dir, "str-disp_drone-data_imagery-missions/DeltaB/DeltaB_120m")
+# out_photo_dir = file.path(data_dir, "str-disp_drone-data_imagery-missions/DeltaB/flattened-120m")
+# prefix = "120m--"
+
+filenames = list.files(in_photo_dir, recursive = TRUE, pattern = ".JPG$")
 
 filenames_flattened = str_replace_all(filenames, fixed("/"), "--")
 
@@ -20,6 +28,6 @@ for(i in 1:length(filenames_flattened)) {
   filename = filenames[i]
   filename_flattened = filenames_flattened[i]
   
-  file.copy( file.path(in_photo_dir,filename), file.path(out_photo_dir,filename_flattened))
+  file.copy(file.path(in_photo_dir,filename), file.path(out_photo_dir,filename_flattened))
 
 }
