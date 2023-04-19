@@ -14,22 +14,20 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 
 source(here("scripts/convenience_functions.R"))
 
+site = "valley"
 
 
-#### DTM
-
-dtm = rast(datadir("drone/metashape-products/crater/dem_usgs.tif"))
+# load DTM
+dtm = rast(datadir(paste0("/cross-site/dtms/photogrammetry/", site, ".tif")))
 
 ## get DSM layer from metashape output
-dsm_file = datadir("drone/metashape-products/crater/Crater120m_20210122T1219_dsm.tif")
-
-file_minus_extension = str_sub(dsm_file,1,-5)
-fileparts = str_split(file_minus_extension,fixed("/"))[[1]]
-filename_only = fileparts[length(fileparts)]
-filename_no_dsm = str_replace(filename_only,"_dsm","")
+dsm_file = datadir(paste0("/cross-site/dsms/", site, ".tif"))
 
 # file to write
-filename = datadir(paste0("drone/processed-products/crater/",filename_no_dsm,"_chm.tif"))
+filename = datadir(paste0("/cross-site/chms/",site,".tif"))
+
+# get site boundary
+boundary =st_read(datadir(paste0("/cross-site/boundaries/", site, ".gpkg")))
 
 # # skip if file aleady exists
 # if(file.exists(filename)) {
@@ -37,7 +35,14 @@ filename = datadir(paste0("drone/processed-products/crater/",filename_no_dsm,"_c
 #   return(FALSE)
 # }
 
+# Crop to study area boundary
 dsm = rast(dsm_file)
+dsm = crop(dsm, boundary |> st_transform(crs(dsm)))
+dsm = mask(dsm, boundary |> st_transform(crs(dsm)))
+
+dtm = crop(dtm, boundary |> st_transform(crs(dtm)))
+dtm = mask(dtm, boundary |> st_transform(crs(dtm)))
+
 
 
 # upscale to 0.12 m
@@ -45,7 +50,7 @@ dsm_upscale = project(dsm, y = "EPSG:3310", res=0.12, method="bilinear")
 
 
 # interpolate the the DTM to the res, extent, etc of the DSM
-dtm_interp = resample(dtm,dsm_upscale, method="bilinear")
+dtm_interp = project(dtm,dsm_upscale, method="bilinear")
 
 
 #### Calculate canopy height model ####
@@ -56,7 +61,7 @@ chm = dsm_upscale - dtm_interp
 
 
 # create dir if doesn't exist, then write
-writeRaster(chm,filename) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
+writeRaster(chm,filename, overwrite = TRUE) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
 
 gc()
 
