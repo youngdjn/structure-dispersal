@@ -1,24 +1,44 @@
-## Function to compare a drone map with a ground map and, ultimately, compare all drone maps in the directory with the ground map
+## Function to prepare reduced-res orthomosaics for purposes of determining live/dead trees
 
 library(tidyverse)
 library(sf)
 library(terra)
 library(here)
+library(furrr)
+
+write("TMP = /ofo-share/tmp/", file=file.path('~/.Renviron'))
 
 
 # The root of the data directory
 data_dir = readLines(here("data_dir.txt"), n=1)
 
-source(here("scripts/convenience_functions.R"))
+sites = c("delta", "chips", "valley", "crater")
 
-#### Inputs ####
+agg_ortho = function(site) {
 
-# Project area boundary
-focal_area = st_read(datadir("drone/boundaries/delta-boundary-from-photos.gpkg")) #%>% st_transform(32610)
+  ortho_file = paste0("cross-site/orthos/", site, ".tif")
+  chm_file = paste0("cross-site/chms/", site, ".tif")
+  boundary_file = paste0("cross-site/boundaries/", site, ".gpkg")
+  agg_ortho_out_file = paste0("cross-site/orthos-crop-agg/", site, ".tif")
+  
+  # load CHM
+  chm = rast(file.path(data_dir, chm_file))
+  
+  # load boundary
+  boundary = st_read(file.path(data_dir, boundary_file))
+  
+  # load ortho, crop, aggregate, mask
+  ortho = rast(file.path(data_dir, ortho_file))
+  
+  ortho = crop(ortho, boundary |> st_transform(crs(ortho)))
+  
+  agg_fact = mean(res(chm))/ mean(res(ortho)) * 4
+  ortho = aggregate(ortho, ceiling(agg_fact))
+  
+  ortho = mask(ortho, boundary |> st_transform(crs(ortho)))
+  
+  writeRaster(ortho, file.path(data_dir, agg_ortho_out_file), overwrite = TRUE)
+}
 
-# Ortho file
-ortho_file = datadir("/storage/disp-uav/products/delta/delta_meta033_20210415T0728_ortho_dsm.tif")
-ortho = rast(ortho_file)
-ortho_agg = aggregate(ortho,fact=10)
-
-writeRaster(ortho_agg,data("drone/processed-products/delta_meta033_20210415T0728_ortho_dsm_agg.tif"))
+plan(multisession(workers = 4))
+future_walk(sites, agg_ortho)
