@@ -10,6 +10,7 @@ source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/tree-size-func
 prep_data = function(dataset_name,               # site-species-sizemetric-version (version is for keeping track of other things)
                      overstory_tree_filepath,    # relative to `datadir`
                      seedling_plot_filepath,     # relative to `datadir`
+                     seedling_plot_crs,
                      target_crs,                 # target CRS (to project the raw data sources to)
                      seedling_plot_area,         # area of the plot in sq m
                      #TODO: specify which species
@@ -17,7 +18,7 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   
   ### Load the site data as specified
   overstory_trees = st_read(datadir(overstory_tree_filepath)) %>% st_transform(target_crs)
-  seedling_plots = st_read(datadir(seedling_plot_filepath)) %>% st_transform(target_crs)
+  seedling_plots = st_read(datadir(seedling_plot_filepath)) |> st_transform(target_crs)
   
   size_function = get(size_function_name) # function for computing size from height defined in tree-size-functions.R
   
@@ -28,8 +29,8 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   overstory_trees$y = tree_coords[,2]
   
   overstory_trees = overstory_trees %>%
-    filter(height > 10) %>%
-    mutate(size = size_function(height))
+    filter(Z > 10) %>%
+    mutate(size = size_function(Z))
   
   overstory_trees = overstory_trees %>%
     select(id = treeID, x, y, size)
@@ -48,8 +49,7 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   ## For Crater Fire only, need to thin plots to exclude low severity and convert seedling density to count
   if(grepl("crater",dataset_name)) {
     seedling_plots = seedling_plots %>%
-      filter(BurnClass != "Low") %>%
-      mutate(observed_count = sapling_density_ha * 0.09)
+      filter(BurnClass != "Low")
   }
   
   seedling_plots = seedling_plots %>%
