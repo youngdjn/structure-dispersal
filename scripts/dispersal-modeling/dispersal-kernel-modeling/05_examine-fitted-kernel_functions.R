@@ -132,3 +132,77 @@ predict_seedl_plot = function(samples, tree_plot_dists, overstory_tree_size) {
   
   return(summarized_seedlingshadow)
 }
+
+
+
+plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, zero_value, ylim) {
+  
+  # Get seedling densities in seedl/ha
+  fitted_observed_plot_seedl_transf = fitted_observed_plot_seedl %>%
+    mutate(obs = obs/plot_size_ha, # from seedl per plot to seedl per ha
+           fit = fit*10000) # from seedl per sq m to seedl per ha
+  
+  # Set zeroes to nonzero for plotting on log-scale axes
+  fitted_observed_plot_seedl_transf = fitted_observed_plot_seedl_transf |>
+    mutate(obs_nonzero = ifelse(obs == 0, zero_value, obs))
+
+  ## calc the MAE and R-sq
+  mae = mean(abs((fitted_observed_plot_seedl_transf$obs) - (fitted_observed_plot_seedl_transf$fit)))
+  cat("MAE:", mae, "\n")
+  
+  rsq = cor(log(fitted_observed_plot_seedl_transf$obs_nonzero),  log(fitted_observed_plot_seedl_transf$fit)) ^ 2
+  cat("Rsq:", rsq, "\n")
+  
+  breaks = c(5, 10, 50, 100, 500, 1000, 5000, 10000)
+  breaks = breaks[breaks > zero_value]
+  breaks = c(zero_value, breaks)
+  labels = as.character(breaks)
+  labels[1] = "[0]"
+  
+  # Plot with log axes
+  p = ggplot(data=fitted_observed_plot_seedl_transf, aes(x=obs_nonzero, y=fit)) +
+    geom_abline(slope=1,intercept=0, color="blue") +
+    geom_point() +
+    #lims(x=c(0,250), y=c(0,100)) +
+    scale_x_continuous(trans = "log", breaks = breaks, labels = labels, minor_breaks = c(5, 10, 50, 100, 500, 1000, 5000, 10000)) +
+    scale_y_continuous(trans = "log", breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000), minor_breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000), limits = ylim) +
+    labs(x = "Observed seedlings / ha", y = "Fitted seedlings / ha") +
+    theme_bw(20)
+  
+  print(p)
+  
+}
+
+load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, zero_value, ylim) {
+
+  ### Run just the steps needed to make a fitted-observed plot (and fit metrics) for a specific fitted model
+  
+  ## Load the dataset specified
+  prepped_data_dir = datadir(paste0("prepped-for-stan/", dataset_name))
+  overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-tree-size.txt")) %>% as.numeric
+  seedling_counts = read_lines(paste0(prepped_data_dir, "/seedling-counts.txt")) %>% as.numeric
+  r = read.table(paste0(prepped_data_dir,"/dist-mat.txt")) %>% as.matrix # rows are plots, columns are trees
+  colnames(r) = NULL
+  
+  ## Load the fitted model and extract the parameter samples
+  model_filename = paste0(datadir("stan-models/"), "stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds")
+  model_fit = readRDS(model_filename)
+  samples = extract(model_fit)
+  
+  # Summarize across the samples, dropping uncertainty (faster predictions)
+  samples_median = map(samples,median)
+  #samples_median= samples
+  
+  ## To run across all plots, need to make a list of tree_plot_dists with one list item per plot, containing the distances to each tree for that plot
+  tree_dists_by_plot = apply(r,1,FUN=c, simplify=FALSE)
+  
+  # Make predictions across all plots, but using just the point estimate of each parameter (no uncertainty)
+  plan(multisession(workers=8))
+  plot_seedl_preds = future_map_dfr(tree_dists_by_plot, predict_seedl_plot, samples = samples_median, overstory_tree_size = overstory_tree_size)
+  row.names(plot_seedl_preds) = NULL
+  
+  ## Combine with observed seedl
+  fitted_observed_plot_seedl = bind_cols(obs = seedling_counts,plot_seedl_preds)
+  
+  plot_fitted_observed(fitted_observed_plot_seedl, plot_size_ha = plot_size_ha, zero_value = zero_value, ylim = ylim)
+}
