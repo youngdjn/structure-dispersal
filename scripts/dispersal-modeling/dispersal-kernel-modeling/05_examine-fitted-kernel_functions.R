@@ -135,14 +135,19 @@ predict_seedl_plot = function(samples, tree_plot_dists, overstory_tree_size) {
 
 
 
-plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, zero_value, ylim) {
+plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, fitted_plot_area = 10000, ylim) {
   
   # Get seedling densities in seedl/ha
   fitted_observed_plot_seedl_transf = fitted_observed_plot_seedl %>%
     mutate(obs = obs/plot_size_ha, # from seedl per plot to seedl per ha
-           fit = fit*10000) # from seedl per sq m to seedl per ha
+           fit = fit*fitted_plot_area) # from seedl per sq m to seedl per ha
   
-  # Set zeroes to nonzero for plotting on log-scale axes
+  ## Set zeroes to nonzero for plotting on log-scale axes
+  # get the smallest nonzero number
+  min = min(fitted_observed_plot_seedl_transf$obs[fitted_observed_plot_seedl_transf$obs > 0])
+  # set to half
+  zero_value = min/2
+  # substitute it for zero
   fitted_observed_plot_seedl_transf = fitted_observed_plot_seedl_transf |>
     mutate(obs_nonzero = ifelse(obs == 0, zero_value, obs))
 
@@ -153,7 +158,7 @@ plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, zero_v
   rsq = cor(log(fitted_observed_plot_seedl_transf$obs_nonzero),  log(fitted_observed_plot_seedl_transf$fit)) ^ 2
   cat("Rsq:", rsq, "\n")
   
-  breaks = c(10, 100, 1000, 10000)
+  breaks = c(1, 10, 100, 1000, 10000)
   breaks = breaks[breaks > zero_value]
   breaks = c(zero_value, breaks)
   labels = as.character(breaks)
@@ -175,7 +180,7 @@ plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, zero_v
   
 }
 
-load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, zero_value, ylim) {
+load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim) {
 
   ### Run just the steps needed to make a fitted-observed plot (and fit metrics) for a specific fitted model
   
@@ -206,5 +211,5 @@ load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, zero
   ## Combine with observed seedl
   fitted_observed_plot_seedl = bind_cols(obs = seedling_counts,plot_seedl_preds)
   
-  plot_fitted_observed(fitted_observed_plot_seedl, plot_size_ha = plot_size_ha, zero_value = zero_value, ylim = ylim)
+  plot_fitted_observed(fitted_observed_plot_seedl, plot_size_ha = plot_size_ha, ylim = ylim)
 }

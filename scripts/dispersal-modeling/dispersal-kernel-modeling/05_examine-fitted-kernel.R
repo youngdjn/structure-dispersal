@@ -40,6 +40,16 @@ fitted_exppow = get_fitted_kernel(dataset_name = "chips-allsp-height-01",
 
 
 
+fitted_2Dt = get_fitted_kernel(dataset_name = "delta-allsp-height-01",
+                               disp_mod = "2Dt",
+                               err_mod = "pois")
+
+fitted_exppow = get_fitted_kernel(dataset_name = "delta-allsp-height-01",
+                                  disp_mod = "exppow",
+                                  err_mod = "pois")
+
+
+
 ## Combine them so they can be plotted together
 kern_summary_comb = bind_rows(fitted_2Dt$kernel, fitted_exppow$kernel)
 
@@ -50,7 +60,9 @@ ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_m
   theme_bw(20) +
   scale_color_viridis_d(begin=0.3,end=0.7, name="Kernel") +
   scale_fill_viridis_d(begin=0.3,end=0.7, name="Kernel") +
-  labs(x="Distance (m)", y = "Kernel density")
+  labs(x="Distance (m)", y = "Kernel density") +
+  coord_cartesian(ylim = c(0, 0.0001),
+                  xlim = c(0, 250))
 
 ggsave(datadir("temp/kern.png"), width=8, height=5)
 
@@ -121,11 +133,16 @@ dataset_name = "crater-pipj-height-01"
 disp_mod = "2Dt"
 err_mod = "pois"
 plot_size_ha = 0.09113
-zero_value = 5
+
+
+dataset_name = "delta-allsp-height-01"
+disp_mod = "2Dt"
+err_mod = "pois"
+plot_size_ha = 0.02
 
 
 ###!!!! make this automatically set  the zero value
-load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, zero_value = zero_value, ylim = c(NA, NA))
+load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
 
 
 
@@ -148,9 +165,7 @@ summary(m)
 plot(m)
 d$fit = fitted(m, type = "response")
 
-plot(fit ~ obs, data = d)
-
-plot_fitted_observed(d, 1, 1, 0.5, c(NA, NA))
+plot_fitted_observed(d, 1, 1, c(NA, NA))
 
 
 
@@ -158,17 +173,49 @@ plot_fitted_observed(d, 1, 1, 0.5, c(NA, NA))
 
 ## Gaussian smooth
 
+## Estimate tree BA and then seed output
 
-# Make a figure for predicted seedling densities: dist to nearest, gauss smooth, actual smooth
+a = 1.4721
+b = 0.6848
+dbh = function(h) {
+  (h/a)^(1/b)
+}
+
+overstory_tree_ba =  (dbh(overstory_tree_size)/2)^2
+
+overstory_tree_fecundity = (0.0107*(  0.1226  ^-0.58)*((113000*( overstory_tree_ba ^0.855))^1.08))
+
+# define gaussian kernel
+gaus_kern = function(x) {
+  dnorm(x, mean = 0, sd = 45)
+}
+
+# apply gaussian kernel
+rel_output = gaus_kern(r)
+
+# multiply by fecundity
+fecundity_matrix = matrix(rep(overstory_tree_fecundity, times = nrow(rel_output)), nrow = nrow(rel_output), byrow = TRUE)
+seed_reaching_plot = fecundity_matrix * rel_output
+gaus_seeds = rowSums(seed_reaching_plot)
+
+d$gaus_seeds = gaus_seeds
+
+plot(seedling_counts ~ gaus_seeds, data = d)
+
+m = gam(obs ~ 0 + s(gaus_seeds, k = 3), data = d, method = "REML", family = "poisson")
+summary(m)
+plot(m)
+d$fit = fitted(m, type = "response")
+
+plot(fit ~ obs, data = d)
+
+plot_fitted_observed(d, 1, 1, c(NA, NA))
 
 
 
 
+####### Make a map of predicted density
 
-
-
-
-#####!!!! This is old broken code that needs to be updated.
 # Need to adapt the prep-data script so that it works on rasters as well, treating each grid cell as a "plot"
 
 ### Make raster of predictions
@@ -176,16 +223,11 @@ plot_fitted_observed(d, 1, 1, 0.5, c(NA, NA))
 # For every 30 cell in this landscape, make a "plot", calc mat of distances from trees, predict
 
 library(terra)
-
-# make a "negative buffer" of the focal area
-foc = st_read(datadir("temp/plots_buff2.gpkg"))
-bbox = st_bbox(foc) %>% st_as_sfc
-bbox = st_buffer(bbox,300)
-foc_inv = st_difference(bbox,foc)
-st_write(foc_inv,datadir("temp/foc_inv.gpkg"), delete_dsn = TRUE)
-
-grid = rast(resolution = 30, ext = ext(foc) , crs = "EPSG:26911")
+site_name = "crater" # move this up higher
+boundary = st_read(datadir(paste0("boundaries/", site_name, ".gpkg")))
+grid = rast(resolution = 10, ext = ext(boundary) , crs = "EPSG:3310")
 values(grid) = 1:ncell(grid)
+#grid = mask(grid, boundary)
 
 ## make the cells into points
 pts = as.points(grid) %>% st_as_sf
@@ -194,6 +236,13 @@ pts$x = coords[,1]
 pts$y = coords[,2]
 st_geometry(pts) = NULL
 
+## load the tree coords
+trees = st_read(datadir(paste0("ttops-live/", site_name, ".gpkg"))) |> st_transform(3310)
+tree_coords = st_coordinates(trees)
+trees$x = tree_coords[,1]
+trees$y = tree_coords[,2]
+tree_data = trees
+st_geometry(tree_data) = NULL
 
 # Calculate tree-point distance matrix
 d2min <- 0.01
@@ -203,14 +252,39 @@ dist_sq[dist_sq < d2min] <- d2min
 
 r <- sqrt(dist_sq)
 
-plan(multisession, workers=8)
 
-plot_seedl_preds = future_map_dfr(1:nrow(pts), predict_seedl_plot)
+
+
+
+
+
+
+
+overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-tree-size.txt")) %>% as.numeric
+
+
+## Load the fitted model and extract the parameter samples
+model_filename = paste0(datadir("stan-models/"), "stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds")
+model_fit = readRDS(model_filename)
+samples = rstan::extract(model_fit)
+
+# Summarize across the samples, dropping uncertainty (faster predictions)
+samples_median = map(samples,median)
+#samples_median= samples
+
+## To run across all plots, need to make a list of tree_plot_dists with one list item per plot, containing the distances to each tree for that plot
+tree_dists_by_plot = apply(r,1,FUN=c, simplify=FALSE)
+
+# Make predictions across all plots, but using just the point estimate of each parameter (no uncertainty)
+plan(multisession(workers=8))
+plot_seedl_preds = future_map_dfr(tree_dists_by_plot, predict_seedl_plot, samples = samples_median, overstory_tree_size = overstory_tree_size)
 row.names(plot_seedl_preds) = NULL
 
 pts = bind_cols(pts,plot_seedl_preds)
 
-values(grid) = pts$predicted_seedl_fit
+values(grid) = pts$fit
+
+grid = mask(grid, boundary)
 
 writeRaster(grid,datadir("temp/pred_seedl_rast.tif"), overwrite=TRUE)
 
