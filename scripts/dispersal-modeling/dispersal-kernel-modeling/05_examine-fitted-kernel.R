@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(here)
+library(mgcv)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
 data_dir = file.path(data_dir, "cross-site/")
@@ -26,6 +27,18 @@ fitted_2Dt = get_fitted_kernel(dataset_name = "valley-allsp-height-01",
 fitted_exppow = get_fitted_kernel(dataset_name = "valley-allsp-height-01",
                                           disp_mod = "exppow",
                                           err_mod = "pois")
+
+
+
+fitted_2Dt = get_fitted_kernel(dataset_name = "chips-allsp-height-01",
+                               disp_mod = "2Dt",
+                               err_mod = "pois")
+
+fitted_exppow = get_fitted_kernel(dataset_name = "chips-allsp-height-01",
+                                  disp_mod = "exppow",
+                                  err_mod = "pois")
+
+
 
 ## Combine them so they can be plotted together
 kern_summary_comb = bind_rows(fitted_2Dt$kernel, fitted_exppow$kernel)
@@ -104,33 +117,49 @@ ggsave(datadir("temp/kern.png"), width=8, height=5)
 
 
 
-dataset_name = "chips-allsp-height-01"
+dataset_name = "crater-pipj-height-01"
 disp_mod = "2Dt"
 err_mod = "pois"
-plot_size_ha = 0.0113
-zero_value = 50
+plot_size_ha = 0.09113
+zero_value = 5
 
+
+###!!!! make this automatically set  the zero value
 load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, zero_value = zero_value, ylim = c(NA, NA))
 
 
 
 
+#### For distance to nearest
+
+## Load the dataset specified
+prepped_data_dir = datadir(paste0("prepped-for-stan/", dataset_name))
+overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-tree-size.txt")) %>% as.numeric
+seedling_counts = read_lines(paste0(prepped_data_dir, "/seedling-counts.txt")) %>% as.numeric
+r = read.table(paste0(prepped_data_dir,"/dist-mat.txt")) %>% as.matrix # rows are plots, columns are trees
+colnames(r) = NULL
+
+dist_to_nearest = apply(r, 1, min)
+d = data.frame(obs = seedling_counts, dist_to_nearest)
+plot(seedling_counts ~ dist_to_nearest, data = d)
+
+m = gam(obs ~ s(dist_to_nearest, k = 3), data = d, method = "REML", family = "poisson")
+summary(m)
+plot(m)
+d$fit = fitted(m, type = "response")
+
+plot(fit ~ obs, data = d)
+
+plot_fitted_observed(d, 1, 1, 0.5, c(NA, NA))
 
 
 
 
 
+## Gaussian smooth
 
 
-
-
-ggsave(datadir("temp/fit_obs_exppow.png"), width=6,height=5)
-
-
-## compare against nearest seed tree, gaussian smooth
-
-
-
+# Make a figure for predicted seedling densities: dist to nearest, gauss smooth, actual smooth
 
 
 

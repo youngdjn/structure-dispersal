@@ -153,19 +153,21 @@ plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, zero_v
   rsq = cor(log(fitted_observed_plot_seedl_transf$obs_nonzero),  log(fitted_observed_plot_seedl_transf$fit)) ^ 2
   cat("Rsq:", rsq, "\n")
   
-  breaks = c(5, 10, 50, 100, 500, 1000, 5000, 10000)
+  breaks = c(10, 100, 1000, 10000)
   breaks = breaks[breaks > zero_value]
   breaks = c(zero_value, breaks)
   labels = as.character(breaks)
   labels[1] = "[0]"
+  
+  minor_breaks = c(2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 30, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000)
   
   # Plot with log axes
   p = ggplot(data=fitted_observed_plot_seedl_transf, aes(x=obs_nonzero, y=fit)) +
     geom_abline(slope=1,intercept=0, color="blue") +
     geom_point() +
     #lims(x=c(0,250), y=c(0,100)) +
-    scale_x_continuous(trans = "log", breaks = breaks, labels = labels, minor_breaks = c(5, 10, 50, 100, 500, 1000, 5000, 10000)) +
-    scale_y_continuous(trans = "log", breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000), minor_breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000), limits = ylim) +
+    scale_x_continuous(trans = "log", breaks = breaks, labels = labels, minor_breaks = minor_breaks) +
+    scale_y_continuous(trans = "log", breaks = c(1, 10, 100, 1000, 10000), minor_breaks =  minor_breaks, limits = ylim) +
     labs(x = "Observed seedlings / ha", y = "Fitted seedlings / ha") +
     theme_bw(20)
   
