@@ -33,11 +33,11 @@ agg_ortho = function(site) {
   ortho = crop(ortho, boundary |> st_transform(crs(ortho)))
   
   agg_fact = mean(res(chm))/ mean(res(ortho)) * 4
-  ortho = aggregate(ortho, ceiling(agg_fact))
+  ortho_agg = aggregate(ortho, ceiling(agg_fact), na.rm = TRUE, cores = 4)
   
-  ortho = mask(ortho, boundary |> st_transform(crs(ortho)))
+  ortho_agg = mask(ortho_agg, boundary |> st_transform(crs(ortho)))
   
-  writeRaster(ortho, file.path(data_dir, agg_ortho_out_file), overwrite = TRUE)
+  writeRaster(ortho_agg, file.path(data_dir, agg_ortho_out_file), overwrite = TRUE)
 }
 
 plan(multisession(workers = 4))
