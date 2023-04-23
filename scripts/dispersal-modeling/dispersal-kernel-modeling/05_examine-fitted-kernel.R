@@ -23,9 +23,9 @@ source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/05_examine-fit
 # And the other called "shadow" which is the seed shadow from a tree of an average size for the site (combines kernel and fecundity)
 
 
-site_name = "crater"
-species = "pipj"
-plot_size_ha = 0.0201
+site_name = "delta"
+species = "allsp"
+plot_size_ha = 0.0113  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                       disp_mod = "2Dt",
@@ -48,7 +48,7 @@ ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_m
   scale_color_viridis_d(begin=0.3,end=0.7, name="Kernel") +
   scale_fill_viridis_d(begin=0.3,end=0.7, name="Kernel") +
   labs(x="Distance (m)", y = "Kernel density") +
-  coord_cartesian(ylim = c(0, 0.00002),
+  coord_cartesian(ylim = c(0, 0.0002),
                   xlim = c(0, 300))
 
 ggsave(datadir(paste0("fitted-dispersal-kernels/", site_name, ".png")), width=8, height=5)
@@ -83,11 +83,11 @@ colnames(r) = NULL
 
 dist_to_nearest = apply(r, 1, min)
 d = data.frame(obs = seedling_counts, dist_to_nearest)
-plot(seedling_counts ~ dist_to_nearest, data = d)
+#plot(seedling_counts ~ dist_to_nearest, data = d)
 
 m = gam(obs ~ s(dist_to_nearest, k = 3), data = d, method = "REML", family = "poisson")
 summary(m)
-plot(m)
+#plot(m)
 d$fit = fitted(m, type = "response")
 
 plot_fitted_observed(d, 1, 1, c(NA, NA))
@@ -123,14 +123,14 @@ gaus_seeds = rowSums(seed_reaching_plot)
 
 d$gaus_seeds = gaus_seeds
 
-plot(seedling_counts ~ gaus_seeds, data = d)
+#plot(seedling_counts ~ gaus_seeds, data = d)
 
 m = gam(obs ~ 0 + s(gaus_seeds, k = 3), data = d, method = "REML", family = "poisson")
 summary(m)
-plot(m)
+#plot(m)
 d$fit = fitted(m, type = "response")
 
-plot(fit ~ obs, data = d)
+#plot(fit ~ obs, data = d)
 
 plot_fitted_observed(d, 1, 1, c(NA, NA))
 ggsave(datadir(paste0("fitted-observed-seedlings/", site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
@@ -149,7 +149,7 @@ ggsave(datadir(paste0("fitted-observed-seedlings/", site_name, "_kernel-", disp_
 
 library(terra)
 boundary = st_read(datadir(paste0("boundaries/", site_name, ".gpkg")))
-grid = rast(resolution = 10, ext = ext(boundary) , crs = "EPSG:3310")
+grid = rast(resolution = 30, ext = ext(boundary) , crs = "EPSG:3310")
 values(grid) = 1:ncell(grid)
 
 ## make the cells into points
@@ -214,7 +214,7 @@ writeRaster(grid_mask,datadir(paste0("regen-prediction-maps/", site_name, "_kern
 # for each point (grid cell), compute distance to nearest tree
 
 min_dist = apply(r, 1, min)
-pts = bind_cols(pts, min_dist = mindist)
+pts = bind_cols(pts, min_dist = min_dist)
 values(grid) = pts$min_dist
 grid_mask = mask(grid, boundary)
 plot(grid_mask)
