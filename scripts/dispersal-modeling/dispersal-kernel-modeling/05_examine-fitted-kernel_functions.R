@@ -108,6 +108,8 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
 ### Function to predict seedl dens for a plot by summing the contributions of all trees
 predict_seedl_plot = function(samples, tree_plot_dists, overstory_tree_size) {
 
+  # browser()
+  
   # Pick the kernel function based on the specified disp_mod
   kernel_function = select_kernel_function(disp_mod)
   
