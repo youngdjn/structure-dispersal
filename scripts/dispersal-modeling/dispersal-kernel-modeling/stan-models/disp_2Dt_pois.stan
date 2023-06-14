@@ -80,7 +80,41 @@ model {
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
     
     mu = calc_mu(a, k, mu_beta, seedling_plot_area, n_overstory_trees, n_seedling_plots, r,
-                overstory_tree_size);  
+                overstory_tree_size);
                 
     seedling_counts ~ poisson(mu);
+}
+
+generated quantities {
+    vector[n_seedling_plots] log_lik;
+    int pval;
+    int tot_seedlings;
+    int nnz;
+    real rmode;
+    real rmed;
+    real rmean;
+    
+    {
+        //matrix[ntrap, nyear] mu;
+        vector[n_seedling_plots] mu_v;
+        int seedling_counts_sim[n_seedling_plots];
+        vector[n_seedling_plots] ll_sim;
+        mu_v = calc_mu(a, k, mu_beta, seedling_plot_area, n_overstory_trees, n_seedling_plots, r,
+                overstory_tree_size);
+                     
+        //mu_v = to_vector(mu);
+        nnz = 0;
+        for (i in 1:n_seedling_plots) {
+            log_lik[i] = poisson_lpmf(seedling_counts[i] | mu_v[i]);
+            seedling_counts_sim[i] = poisson_rng(mu_v[i]);
+            ll_sim[i] = poisson_lpmf(seedling_counts_sim[i] | mu_v[i]);
+            if (seedling_counts_sim[i] > 0) nnz = nnz + 1;
+        }
+        pval = sum(ll_sim) < sum(log_lik);
+        tot_seedlings = sum(seedling_counts_sim);
+    }
+    
+    rmode = 0;
+    rmed = sqrt(a * (pow(2, 1/k) - 1));
+    rmean = sqrt(pi() * a) / 2 * tgamma(k - 0.5) / tgamma(k);
 }

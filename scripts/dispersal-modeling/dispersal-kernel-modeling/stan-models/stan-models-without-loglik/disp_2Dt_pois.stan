@@ -1,4 +1,4 @@
-// Seed dispersal model with exponential power kernel
+// Seed dispersal model with 2Dt kernel
 
 functions {
   
@@ -23,8 +23,8 @@ functions {
 
         for (j in 1:n_overstory_trees) {
             for (i in 1:n_seedling_plots) {
-                disp_kern[i, j] = k / (2*pi() * square(a) * tgamma(2/k)) * 
-                                        exp(- pow(r[i, j] / a, k));
+                disp_kern[i, j] = k / (pi() * a) * 
+                                        pow(1 + square(r[i, j]) / a, -1-k);
             }
         }
         
@@ -55,65 +55,32 @@ data {
     
     // Hyperparameters for parameter priors
     real p_alpha[2];
-    real p_inv_k[2];
+    real p_inv_k_real[2];
     real p_mu_beta[2];
 }
 
 parameters {
-    real alpha; // alpha parameter (related to scale)
-    real inv_k; // (Inv.) shape parameter
+    real alpha; // (Log) of 2Dt scale parameter
+    real inv_k_real; // Logit transform of inverse of k
     real mu_beta; // Mean log of b
 }
 
 transformed parameters {
     real a; // Scale parameter
     real k; // Shape parameter
-    a = exp(alpha - inv_k);
-    k = inv(inv_k);
+    a = exp(alpha);
+    k = inv(2 * inv_logit(inv_k_real));
 }
 
 model {
     vector[n_seedling_plots] mu; // Mean number of seedlings per plot
     
     alpha ~ normal(p_alpha[1], p_alpha[2]);
-    inv_k ~ gamma(p_inv_k[1], p_inv_k[2]);
+	  inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
     
     mu = calc_mu(a, k, mu_beta, seedling_plot_area, n_overstory_trees, n_seedling_plots, r,
                 overstory_tree_size);  
                 
     seedling_counts ~ poisson(mu);
-}
-
-
-generated quantities {
-    vector[n_seedling_plots] log_lik;
-    int pval;
-    int tot_seedlings;
-    int nnz;
-    real rmode;
-    real rmean;
-    
-    {
-        //matrix[ntrap, nyear] mu;
-        vector[n_seedling_plots] mu_v;
-        int seedling_counts_sim[n_seedling_plots];
-        vector[n_seedling_plots] ll_sim;
-        mu_v = calc_mu(a, k, mu_beta, seedling_plot_area, n_overstory_trees, n_seedling_plots, r,
-                overstory_tree_size);
-                     
-        //mu_v = to_vector(mu);
-        nnz = 0;
-        for (i in 1:n_seedling_plots) {
-            log_lik[i] = poisson_lpmf(seedling_counts[i] | mu_v[i]);
-            seedling_counts_sim[i] = poisson_rng(mu_v[i]);
-            ll_sim[i] = poisson_lpmf(seedling_counts_sim[i] | mu_v[i]);
-            if (seedling_counts_sim[i] > 0) nnz = nnz + 1;
-        }
-        pval = sum(ll_sim) < sum(log_lik);
-        tot_seedlings = sum(seedling_counts_sim);
-    }
-    
-    rmode = 0;
-    rmean = a * tgamma(3 * inv_k) / tgamma(2 * inv_k);
 }
