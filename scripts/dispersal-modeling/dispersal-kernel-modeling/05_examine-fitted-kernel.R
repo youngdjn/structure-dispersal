@@ -25,7 +25,7 @@ source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/05_examine-fit
 
 site_name = "delta"
 species = "allsp"
-plot_size_ha = 0.0113  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
+plot_size_ha = 0.0201  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                       disp_mod = "2Dt",
@@ -34,7 +34,7 @@ fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-
 fitted_exppow = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                           disp_mod = "exppow",
                                           err_mod = "pois")
-
+loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
 
 
 ## Combine them so they can be plotted together
@@ -52,8 +52,6 @@ ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_m
                   xlim = c(0, 300))
 
 ggsave(datadir(paste0("fitted-dispersal-kernels/", site_name, ".png")), width=8, height=5)
-
-
 
 
 dataset_name = paste0(site_name, "-", species, "-height-01")

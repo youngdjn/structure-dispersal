@@ -73,6 +73,21 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
   model_fit = readRDS(model_filename)
   samples = extract(model_fit)
   
+  ## Get LOOIC and kernel params
+  a = loo(model_fit)
+  looic = a$estimates["looic",1]
+  cat("\nLOOIC:", looic, "\n")
+  
+  # kernel params
+  a = quantile(samples$a, probs = c(0.025, .5, 0.975)) |> round(4)
+  a_format = paste0(a[2], " (", a[1], ", ", a[3], ")")
+  cat("\nKernel param a:", a_format)
+  k = quantile(samples$k, probs = c(0.025, .5, 0.975)) |> round(3)
+  k_format = paste0(k[2], " (", k[1], ", ", k[3], ")")
+  cat("\nKernel param k:", k_format)
+  
+  
+  
   # Pick the kernel function based on the specified disp_mod
   kernel_function = select_kernel_function(disp_mod)
   
@@ -99,7 +114,7 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
                               upr = apply(seeds_out,1,quantile,probs=c(0.75)),
                               disp_mod = disp_mod)
   
-  return(list(kernel = summarized_kernel, shadow = summarized_seedlingshadow))
+  return(list(kernel = summarized_kernel, shadow = summarized_seedlingshadow, model = model_fit))
 }
 
 
