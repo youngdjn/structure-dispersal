@@ -14,6 +14,32 @@ source(here("scripts/convenience_functions.R"))
 source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/01_prep-data-for-model_functions.R"))
 
 
+
+#### Summarize data across sites
+
+## Ttops
+
+d1 = st_read(file.path(data_dir, "ttops-live/crater.gpkg"))
+d2 = st_read(file.path(data_dir, "ttops-live/valley.gpkg"))
+d3 = st_read(file.path(data_dir, "ttops-live/delta.gpkg"))
+d4 = st_read(file.path(data_dir, "ttops-live/chips.gpkg"))
+
+d = bind_rows(d1, d2, d3, d4)
+
+## Plots
+
+d1 = st_read(file.path(data_dir, "regen-plots-standardized/crater.gpkg")) |> mutate(area = 900) |> st_transform(3310)
+d2 = st_read(file.path(data_dir, "regen-plots-standardized/valley.gpkg")) |> mutate(area = 201) |> st_transform(3310)
+d3 = st_read(file.path(data_dir, "regen-plots-standardized/delta.gpkg")) |> mutate(area = 201) |> st_transform(3310)
+d4 = st_read(file.path(data_dir, "regen-plots-standardized/chips.gpkg")) |> mutate(area = 113) |> st_transform(3310)
+
+d = bind_rows(d1, d2, d3, d4)
+
+d  = d |>
+  mutate(density = observed_count / area)
+
+
+
 #### Run data prep for a specific site. See 01_prep-data-for-model_functions.R for parameter definitions.
 prep_data(dataset_name = "crater-pipj-height-01",
           overstory_tree_filepath = "ttops-live/crater.gpkg",
