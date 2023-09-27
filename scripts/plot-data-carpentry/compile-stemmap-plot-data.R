@@ -52,7 +52,6 @@ emlid[emlid$collection.start == "2020-08-20 22:50:48", "name"] <- 34 # renamed a
 
 
 # remove an extraneous point
-# TODO: NOTE: make sure all points get removed (dates were getting shifted by an hour before)
 emlid <- emlid %>%
   filter(name != "Point 90") %>%
   filter(collection.start != "2020-07-02 20:23:17") %>% # remove the first delta 50
@@ -134,7 +133,7 @@ emlid_centers <- emlid %>%
   mutate(point_name = str_replace_all(point_name, fixed("-"), ""))
 
 emlid_trees <- emlid %>%
-  filter(!str_starts(point_name, "C")) %>%
+  filter(!str_starts(point_name, "[a-zA-Z]")) %>%
   rename(tree_id = point_name)
 
 
@@ -152,7 +151,7 @@ manual_trees <- ds_stem_tree %>%
     y_offset = cos(deg2rad(azimuth)) * distance
   )
 
-## For each manual tree, get the x and y of the corresponding manual plot center
+## For each manual tree, get the x and y of the corresponding manual mapping plot center, as recorded by emlid
 coords <- st_coordinates(emlid_centers %>% st_transform(3310)) %>% as.data.frame()
 emlid_centers_foc <- emlid_centers %>%
   mutate(
@@ -217,8 +216,8 @@ trees_dup <- trees %>%
 trees_sf <- st_as_sf(trees, coords = c("x", "y"), crs = 4326)
 
 ## Write
-write_csv(trees, datadir("surveys/main/processed/stems.csv"))
-st_write(trees_sf, datadir("surveys/main/processed/stems.geojson"), delete_dsn = TRUE)
+write_csv(trees, datadir("surveys/main/processed/stems_v2.csv"))
+st_write(trees_sf, datadir("surveys/main/processed/stems_v2.gpkg"), delete_dsn = TRUE)
 
 
 
