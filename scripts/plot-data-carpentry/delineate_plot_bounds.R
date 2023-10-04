@@ -4,7 +4,7 @@
 library(tidyverse)
 library(sf)
 
-trees = read_csv("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v2_aligned.csv") |>
+trees = read_csv("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v3_aligned.csv") |>
     st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 # get each stem map name
@@ -39,5 +39,5 @@ plot_bboxes = bind_rows(plot_bboxes) |> st_transform(3310) |> st_buffer(1.5) |> 
 
 
 # write to file
-st_write(plot_bounds, "/ofo-share/str-disp_data-partial/surveys/main/processed/plot_bounds.gpkg", delete_dsn = TRUE)
-st_write(plot_bboxes, "/ofo-share/str-disp_data-partial/surveys/main/processed/plot_bboxes.gpkg", delete_dsn = TRUE)
+st_write(plot_bounds, "/ofo-share/str-disp_data-partial/surveys/main/processed/plot_bounds_v3.gpkg", delete_dsn = TRUE)
+st_write(plot_bboxes, "/ofo-share/str-disp_data-partial/surveys/main/processed/plot_bboxes_v3.gpkg", delete_dsn = TRUE)

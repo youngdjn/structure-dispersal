@@ -7,10 +7,17 @@
 library(tidyverse)
 library(sf)
 
-unshifted_orig = st_read("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v2.gpkg") |>
+unshifted_orig = st_read("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v3.gpkg") |>
     st_transform(3310)
-shifted_orig = st_read("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v2_manualyShiftedSubset.gpkg") |>
+shifted_orig_nocreek = st_read("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v2_manualyShiftedSubset.gpkg") |>
+    st_transform(3310) |>
+    mutate(base_station_loc = as.character(base_station_loc))
+# Creek trees were manually shifted in a separate file
+shifted_orig_creek = st_read("/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v3_manuallyShiftedSubsetCreek.gpkg") |>
     st_transform(3310)
+
+# combine shifted nocreek and shifted creek (creek only)
+shifted_orig = bind_rows(shifted_orig_nocreek, shifted_orig_creek |> filter(fire == "Creek"))
 
 unshifted = unshifted_orig
 shifted = shifted_orig
@@ -87,5 +94,5 @@ trees = trees |>
     select(stem_map_name, everything())
 
 # write to file
-write_csv(trees |> st_drop_geometry(), "/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v2_aligned.csv")
-#st_write(trees, "/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v2_aligned.gpkg", delete_dsn = TRUE)
+write_csv(trees |> st_drop_geometry(), "/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v3_aligned.csv")
+st_write(trees, "/ofo-share/str-disp_data-partial/surveys/main/processed/stems_v3_aligned.gpkg", delete_dsn = TRUE)
