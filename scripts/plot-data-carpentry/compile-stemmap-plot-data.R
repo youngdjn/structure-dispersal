@@ -202,7 +202,20 @@ manual_trees = manual_trees |>
 emlid_centers_foc[emlid_centers_foc$fire == "Chips" & emlid_centers_foc$center_id %in% c("C12A", "C16A"), "stem_map_id"] = "2"
 emlid_centers_foc[emlid_centers_foc$fire == "Chips" & emlid_centers_foc$center_id %in% c("CABCOA"), "stem_map_id"] = "1_ABCO"
 
-
+## Write the centers
+centers = st_as_sf(emlid_centers_foc, coords = c("center_x", "center_y"), crs = 3310) %>%
+  st_transform(4326)
+coords = st_coordinates(centers)
+centers$lon = coords[,1]
+centers$lat = coords[,2]
+st_geometry(centers) <- NULL
+centers = centers |>
+  mutate(fire = recode(fire, Delta_3 = "Delta")) |>
+  mutate(stem_map_name = paste0(fire, "_", stem_map_id)) |>
+  rename(subplot_center_id = center_id) |>
+  select(stem_map_name, subplot_center_id, lon, lat) |>
+  filter(stem_map_name != "Delta_1") # this one was removed because it could not be aligned with the other (gps-mapped) trees in this plot
+write_csv(centers, datadir("surveys/main/processed/subplot_centers_v3.csv"))
 
 manual_trees <- left_join(manual_trees, emlid_centers_foc, by = c("fire", "center_id", "stem_map_id"))
 
