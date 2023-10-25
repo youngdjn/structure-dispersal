@@ -4,11 +4,6 @@ library(tidyverse)
 library(sf)
 library(units)
 
-# set up connection to python for linear sum assignment function
-library(reticulate)
-reticulate::use_condaenv("base", required = TRUE)
-lapsolver = import("lapsolver")
-
 MAX_MATCHING_DIST = set_units(10, "m")
 
 
@@ -38,6 +33,7 @@ any_taller = function(i, tree_map) {
 
 ## Get the field tree dataset into the expected format (column names, etc)
 trees_field$Height = trees_field$ht_top
+trees_field$height = trees_field$ht_top
 
 ## Get the drone tree dataset into the expected format (column names, etc)
 trees_drone = trees_drone |>
@@ -58,7 +54,8 @@ mutate(height = Z,
 
 # Start with Chips
 trees_field_foc = trees_field |>
-    filter(stem_map_name == "Chips_1")
+    filter(stem_map_name == "Chips_1") |>
+    mutate(observed_tree_id = tree_id)
 
 perim_field_foc = perims_field |>
     filter(stem_map_name == "Chips_1")
@@ -67,7 +64,8 @@ perim_buff = st_buffer(perim_field_foc, MAX_MATCHING_DIST)
 
 # Get drone trees within the buffered field plot
 trees_drone_foc = trees_drone |>
-  st_intersection(perim_buff)
+  st_intersection(perim_buff) |>
+  mutate(predicted_tree_id = treeID)
 
 # Determine whether under a neighbor
 #trees_field$under_neighbor = map_lgl(1:nrow(trees_field), any_taller, tree_map = trees_field)
@@ -83,33 +81,28 @@ trees_drone_foc = trees_drone |>
 # trees_field_foc$geom <- trees_field_foc$geom + shift_df$geometry
 # st_crs(trees_field_foc) = st_crs(trees_field)
 
+source("/ofo-share/utils/tree-map-comparison/lib/match-trees.R")
+
+matches = match_trees_singlestratum(trees_field_foc,
+                                    trees_drone_foc,
+                          search_height_proportion = 0.5,
+                          search_distance_fun_slope = 0.1,
+                          search_distance_fun_intercept = 1)
 
 
+matches = matches |>
+  filter(!is.na(final_predicted_tree_match_id))
 
-
-# Get distance matrix
-dist_mat = st_distance(trees_field_foc, trees_drone_foc) %>% as.matrix
-
-# Disallow matches for distances over the threshold
-dist_mat[dist_mat > (MAX_MATCHING_DIST)] = NA
-dist_mat = dist_mat^2
-
-# Run linear sum assignment
-matches = lapsolver$solve_dense(dist_mat)
-
-# Select the matched trees and get distances between pairs
-trees_field_foc_match = trees_field_foc[matches[[1]] + 1, ]
-trees_drone_foc_match = trees_drone_foc[matches[[2]] + 1, ]
-
-dists = st_distance(trees_field_foc_match, trees_drone_foc_match, by_element = TRUE) %>% as.vector
-
+# make two aligned data frames of the matching trees (only those that match)
+trees_field_foc_match = trees_field_foc[match(matches$observed_tree_id, trees_field_foc$observed_tree_id), ]
+trees_drone_foc_match = trees_drone_foc[match(matches$final_predicted_tree_match_id, trees_drone_foc$predicted_tree_id),]
 
 
 # make lines pairing matches for vis
 lines = st_sfc(mapply(function(a,b){st_cast(st_union(a,b),"LINESTRING")}, st_geometry(trees_field_foc_match), st_geometry(trees_drone_foc_match), SIMPLIFY=FALSE))
 st_crs(lines) = st_crs(trees_field_foc_match)
 
-st_write(lines, "/ofo-share/scratch-derek/pairing-lines_squared-dist.gpkg", delete_dsn = TRUE)
+st_write(lines, "/ofo-share/scratch-derek/pairing-lines_custom.gpkg", delete_dsn = TRUE)
 
 # Filter both tree sets to comparable heights (field tree height can be < 10)...need to think if a mod to matching code is necessary given that field trees go down to 10...what if drone tree is 10 and field was measured as 9.9 and excluded?
 
