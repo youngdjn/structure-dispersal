@@ -1,6 +1,7 @@
 library(tidyverse)
 library(here)
 library(sf)
+library(elevatr)
 
 
 ## Functions for computing the desired size metric from the drone-derived tree height
@@ -22,9 +23,13 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   
   size_function = get(size_function_name) # function for computing size from height defined in tree-size-functions.R
   
+  # Extract DEM data (elevs) at tree and plot points
+  overstory_trees = get_elev_point(overstory_trees)
+  seedling_plots = get_elev_point(seedling_plots)
+
   
   ### Prep overstory tree data: columns ID, x and y location, and size
-  tree_coords = st_coordinates(overstory_trees)
+  tree_coords = st_coordinates(overstory_trees, )
   overstory_trees$x = tree_coords[,1]
   overstory_trees$y = tree_coords[,2]
   
@@ -33,7 +38,8 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
     mutate(size = size_function(Z))
   
   overstory_trees = overstory_trees %>%
-    select(id = treeID, x, y, size)
+    select(id = treeID, x, y, size, elevation, Z) |>
+    mutate(elevation_top = elevation + Z)
   
   st_geometry(overstory_trees) = NULL
   
@@ -53,7 +59,7 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   }
   
   seedling_plots = seedling_plots %>%
-    select(x,y,observed_count)
+    select(x,y,observed_count,elevation)
   
   st_geometry(seedling_plots) = NULL
   
@@ -80,6 +86,8 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   dist_sq[dist_sq < d2min] <- d2min # Is this step necessary?
   
   r <- sqrt(dist_sq)
+
+  ht_diff = -outer(seedling_plots$elevation, overstory_trees$elevation_top, "-")
   
   
   ### Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
@@ -88,6 +96,7 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   
   write_file(as.character(seedling_plot_area),paste0(prepped_data_dir,"/plot-area.txt"))
   write.table(r,paste0(prepped_data_dir,"/dist-mat.txt"), row.names=FALSE, col.names=FALSE)
+  write.table(ht_diff,paste0(prepped_data_dir,"/ht-diff-mat.txt"), row.names=FALSE, col.names=FALSE)
   write_lines(overstory_tree_size, paste0(prepped_data_dir, "/overstory-tree-size.txt"))
   write_lines(seedling_counts, paste0(prepped_data_dir, "/seedling-counts.txt"))
   
