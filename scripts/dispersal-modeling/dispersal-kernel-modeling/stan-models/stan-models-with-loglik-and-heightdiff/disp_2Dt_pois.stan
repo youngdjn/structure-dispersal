@@ -10,21 +10,26 @@ functions {
         // Or adding an intercept: q = b * (pow(overstory_tree_size, zeta) - eta)
         return(q);
     }
-  
+
     //  Calculate expected number of seedlings per plot 
     vector calc_mu(real a, real k, real mu_beta,
+              real b0_ht, real b1_ht,
               real seedling_plot_area, int n_overstory_trees, int n_seedling_plots, 
-              matrix r, 
+              matrix r, matrix ht_diff,
               vector overstory_tree_size) { 
               
         real b; // fecundity multiplier parameter
         matrix[n_seedling_plots, n_overstory_trees] disp_kern; // Dispersal kernel
         vector[n_seedling_plots] mu;
+        matrix[n_seedling_plots, n_overstory_trees] height_difference_scalar;
+
+        height_difference_scalar = b0_ht + b1_ht * ht_diff;
 
         for (j in 1:n_overstory_trees) {
             for (i in 1:n_seedling_plots) {
                 disp_kern[i, j] = k / (pi() * a) * 
-                                        pow(1 + square(r[i, j]) / a, -1-k);
+                                        pow(1 + square(r[i, j]) / a, -1-k) *
+                                        height_difference_scalar[i, j];
             }
         }
         
@@ -47,6 +52,9 @@ data {
     // Distance matrix (seedling plots to overstory trees)
     matrix<lower=0>[n_seedling_plots, n_overstory_trees] r;
 
+    // Elevation difference matrix (seedling plots to overstory trees)
+    matrix[n_seedling_plots, n_overstory_trees] ht_diff;
+
     // Size of overstory trees
     vector<lower=0>[n_overstory_trees] overstory_tree_size; 
     
@@ -57,12 +65,16 @@ data {
     real p_alpha[2];
     real p_inv_k_real[2];
     real p_mu_beta[2];
+    real p_b0_ht[2];
+    real p_b1_ht[2];
 }
 
 parameters {
     real alpha; // (Log) of 2Dt scale parameter
     real inv_k_real; // Logit transform of inverse of k
     real mu_beta; // Mean log of b
+    real b0_ht; // Intercept for elevation difference effect
+    real b1_ht; // Slope for elevation difference effect 
 }
 
 transformed parameters {
@@ -76,10 +88,12 @@ model {
     vector[n_seedling_plots] mu; // Mean number of seedlings per plot
     
     alpha ~ normal(p_alpha[1], p_alpha[2]);
-	  inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
+	inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
-    
-    mu = calc_mu(a, k, mu_beta, seedling_plot_area, n_overstory_trees, n_seedling_plots, r,
+    p_b0_ht[2] ~ normal(p_mu_beta[1], p_mu_beta[2]);
+    p_b1_ht[2] ~ normal(p_mu_beta[1], p_mu_beta[2]);
+
+    mu = calc_mu(a, k, mu_beta, b0_ht, b1_ht, seedling_plot_area, n_overstory_trees, n_seedling_plots, r, ht_diff,
                 overstory_tree_size);
                 
     seedling_counts ~ poisson(mu);
@@ -99,7 +113,7 @@ generated quantities {
         vector[n_seedling_plots] mu_v;
         int seedling_counts_sim[n_seedling_plots];
         vector[n_seedling_plots] ll_sim;
-        mu_v = calc_mu(a, k, mu_beta, seedling_plot_area, n_overstory_trees, n_seedling_plots, r,
+        mu_v = calc_mu(a, k, mu_beta, b0_ht, b1_ht, seedling_plot_area, n_overstory_trees, n_seedling_plots, r, ht_diff,
                 overstory_tree_size);
                      
         //mu_v = to_vector(mu);

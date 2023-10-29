@@ -47,6 +47,8 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
   seedling_plot_area = read_file(paste0(prepped_data_dir,"/plot-area.txt")) %>% as.numeric
   r = read.table(paste0(prepped_data_dir,"/dist-mat.txt")) %>% as.matrix
   colnames(r) = NULL
+  ht_diffs = read.table(paste0(prepped_data_dir,"/ht-diff-mat.txt")) %>% as.matrix
+  colnames(ht_diffs) = NULL
   overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-tree-size.txt")) %>% as.numeric
   seedling_counts = read_lines(paste0(prepped_data_dir, "/seedling-counts.txt")) %>% as.numeric
   
@@ -59,8 +61,9 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
                    seedling_counts = as.vector(seedling_counts))    
   
   overstorytree_seedlingplot_dists = list(r = r)
+  overstorytree_seedlingplot_ht_diffs = list(ht_diff = ht_diffs)
   
-  data_list <- c(data_list, overstorytree_seedlingplot_dists, priors_list)
+  data_list <- c(data_list, overstorytree_seedlingplot_dists, overstorytree_seedlingplot_ht_diffs, priors_list)
   
   # Check for missing data
   if (any(is.na(unlist(data_list)))) stop("Missing values in data.")
@@ -69,7 +72,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
   
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
-  model_file <- paste0("scripts/dispersal-modeling/dispersal-kernel-modeling/stan-models/disp_", disp_mod, "_", err_mod, ".stan")
+  model_file <- paste0("scripts/dispersal-modeling/dispersal-kernel-modeling/stan-models/stan-models-with-loglik-and-heightdiff/disp_", disp_mod, "_", err_mod, ".stan")
   
   res <- stan(model_file, data = data_list, chains = n_chains, 
               warmup = n_warmup, iter = n_iter, cores = n_cores)
