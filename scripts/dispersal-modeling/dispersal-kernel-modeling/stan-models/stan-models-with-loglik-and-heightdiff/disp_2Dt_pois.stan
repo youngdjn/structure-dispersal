@@ -90,8 +90,8 @@ model {
     alpha ~ normal(p_alpha[1], p_alpha[2]);
 	inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
-    p_b0_ht[2] ~ normal(p_mu_beta[1], p_mu_beta[2]);
-    p_b1_ht[2] ~ normal(p_mu_beta[1], p_mu_beta[2]);
+    b0_ht ~ normal(p_b0_ht[1], p_b0_ht[2]);
+    b1_ht ~ normal(p_b1_ht[1], p_b1_ht[2]);
 
     mu = calc_mu(a, k, mu_beta, b0_ht, b1_ht, seedling_plot_area, n_overstory_trees, n_seedling_plots, r, ht_diff,
                 overstory_tree_size);
