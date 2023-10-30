@@ -4,7 +4,6 @@
 library(here)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
-data_dir = file.path(data_dir, "cross-site/")
 
 ## Convenience functions ####
 source(here("scripts/convenience_functions.R"))
@@ -15,23 +14,30 @@ source(here("scripts/convenience_functions.R"))
 # Main functions for the tasks in this script.
 source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/02_fit-dispersal-kernel-stan_functions.R"))
 
-# #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
-# fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
-#                 disp_mod = "2Dt",                         # 2Dt or exppow
-#                 err_mod = "pois",                         # pois only currently
-#                 n_warmup = 500,                           # stan warmup iter
-#                 n_iter = 2500,                             # stan iter, includes warmup
-#                 n_chains = 6,                             # stan n chains
-#                 n_cores = 6)                              # stan n cores
-
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
 fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
-                n_warmup = 100,                           # stan warmup iter
-                n_iter = 500,                             # stan iter, includes warmup
+                n_warmup = 500,                           # stan warmup iter
+                n_iter = 2500,                             # stan iter, includes warmup
                 n_chains = 3,                             # stan n chains
                 n_cores = 3)                              # stan n cores
+
+fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+                disp_mod = "2Dt",                         # 2Dt or exppow
+                err_mod = "pois",                         # pois only currently
+                n_warmup = 500,                           # stan warmup iter
+                n_iter = 2500,                             # stan iter, includes warmup
+                n_chains = 3,                             # stan n chains
+                n_cores = 3)                              # stan n cores
+
+fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+                disp_mod = "2Dt",                         # 2Dt or exppow
+                err_mod = "pois",                         # pois only currently
+                n_warmup = 500,                           # stan warmup iter
+                n_iter = 2500,                             # stan iter, includes warmup
+                n_chains = 6,                             # stan n chains
+                n_cores = 6)                              # stan n cores
 
 fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
@@ -40,19 +46,6 @@ fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to mod
                 n_iter = 2500,                             # stan iter, includes warmup
                 n_chains = 6,                             # stan n chains
                 n_cores = 6)                              # stan n cores
-
-fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
-                disp_mod = "2Dt",                         # 2Dt or exppow
-                err_mod = "pois",                         # pois only currently
-                n_warmup = 500,                           # stan warmup iter
-                n_iter = 2500,                             # stan iter, includes warmup
-                n_chains = 6,                             # stan n chains
-                n_cores = 6)                              # stan n cores
-
-
-
-
-
 
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
 fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
@@ -71,7 +64,6 @@ fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset to mo
                 n_iter = 2500,                             # stan iter, includes warmup
                 n_chains = 6,                             # stan n chains
                 n_cores = 6)                              # stan n cores
-
 
 
 fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
@@ -95,4 +87,3 @@ fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to mod
 
 # Q: Separate models by site? Or combine sites, but need a sparse dist mat so we don't compare plots and trees from different sites, and need to specify a different plot size by site
     # Lisa Rosenthal knows how to do the sparse part
-    
