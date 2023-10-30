@@ -94,4 +94,5 @@ fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to mod
 
 
 # Q: Separate models by site? Or combine sites, but need a sparse dist mat so we don't compare plots and trees from different sites, and need to specify a different plot size by site
-# Q: Should we test between ExpPow and 2Dt? Pois and NB? If so, how? May need to generate log_lik as a Stan generated quantity per Marchand?
+    # Lisa Rosenthal knows how to do the sparse part
+    
