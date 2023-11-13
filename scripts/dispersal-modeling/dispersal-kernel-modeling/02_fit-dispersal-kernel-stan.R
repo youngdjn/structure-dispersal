@@ -5,11 +5,6 @@ library(here)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
 
-## Convenience functions ####
-source(here("scripts/convenience_functions.R"))
-# ^ This defines the function 'datadir', which takes a string argument and prepends it with the path to the data directory.
-#   It allows you to make all the paths in the script be relative to the data directory.
-
 
 # Main functions for the tasks in this script.
 source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/02_fit-dispersal-kernel-stan_functions.R"))
