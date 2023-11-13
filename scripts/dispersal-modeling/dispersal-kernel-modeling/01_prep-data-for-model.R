@@ -2,12 +2,6 @@
 
 library(here)
 data_dir = readLines(here("data_dir.txt"), n=1)
-data_dir = file.path(data_dir, "cross-site/")
-
-## Convenience functions ####
-source(here("scripts/convenience_functions.R"))
-# ^ This defines the function 'datadir', which takes a string argument and prepends it with the path to the data directory.
-#   It allows you to make all the paths in the script be relative to the data directory.
 
 
 ## Main functions for the tasks of this script
@@ -39,6 +33,14 @@ d  = d |>
   mutate(density = observed_count / area)
 
 
+#### Run data prep for a specific site. See 01_prep-data-for-model_functions.R for parameter definitions.
+prep_data(dataset_name = "valley-allsp-height-01",
+          overstory_tree_filepath = "ttops-live/valley.gpkg",
+          seedling_plot_filepath = "regen-plots-standardized/valley.gpkg",
+          target_crs = 3310,
+          seedling_plot_area = 201,
+          #TODO: specify which species
+          size_function_name = "height")
 
 #### Run data prep for a specific site. See 01_prep-data-for-model_functions.R for parameter definitions.
 prep_data(dataset_name = "crater-pipj-height-01",
@@ -49,15 +51,6 @@ prep_data(dataset_name = "crater-pipj-height-01",
           #TODO: specify which species
           size_function_name = "height")
 
-
-#### Run data prep for a specific site. See 01_prep-data-for-model_functions.R for parameter definitions.
-prep_data(dataset_name = "valley-allsp-height-01",
-          overstory_tree_filepath = "ttops-live/valley.gpkg",
-          seedling_plot_filepath = "regen-plots-standardized/valley.gpkg",
-          target_crs = 3310,
-          seedling_plot_area = 201,
-          #TODO: specify which species
-          size_function_name = "height")
 
 #### Run data prep for a specific site. See 01_prep-data-for-model_functions.R for parameter definitions.
 prep_data(dataset_name = "delta-allsp-height-01",

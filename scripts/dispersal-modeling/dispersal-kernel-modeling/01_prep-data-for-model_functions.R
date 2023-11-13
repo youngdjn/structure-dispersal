@@ -18,15 +18,17 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
                      size_function_name) {      # the name of the function for obtaining the desired tree size metric from drone-derived tree height (metric defined in tree-size-functions.R)
   
   ### Load the site data as specified
-  overstory_trees = st_read(datadir(overstory_tree_filepath)) %>% st_transform(target_crs)
-  seedling_plots = st_read(datadir(seedling_plot_filepath)) |> st_transform(target_crs)
+  overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) %>% st_transform(target_crs)
+  seedling_plots = st_read(file.path(data_dir, seedling_plot_filepath)) |> st_transform(target_crs)
   
   size_function = get(size_function_name) # function for computing size from height defined in tree-size-functions.R
   
-  # Extract DEM data (elevs) at tree and plot points
-  overstory_trees = get_elev_point(overstory_trees)
-  seedling_plots = get_elev_point(seedling_plots)
+  # # Extract DEM data (elevs) at tree and plot points
+  # overstory_trees = get_elev_point(overstory_trees)
+  # seedling_plots = get_elev_point(seedling_plots)
 
+  overstory_trees$elevation = runif(nrow(overstory_trees), 0, 100)
+  seedling_plots = runif(nrow(seedling_plots), 0, 100)
   
   ### Prep overstory tree data: columns ID, x and y location, and size
   tree_coords = st_coordinates(overstory_trees, )
