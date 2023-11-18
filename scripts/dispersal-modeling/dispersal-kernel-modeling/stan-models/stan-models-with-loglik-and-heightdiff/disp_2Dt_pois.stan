@@ -11,52 +11,32 @@ functions {
         return(q);
     }
 
-    //  Calculate expected number of seedlings per plot 
-    vector calc_mu(real a, real k, real mu_beta,
-              real b0_ht, real b1_ht,
-              real seedling_plot_area, int n_overstory_trees, int n_seedling_plots, 
-              matrix r, matrix ht_diff,
-              vector overstory_tree_size) { 
-              
-        real b; // fecundity multiplier parameter
-        matrix[n_seedling_plots, n_overstory_trees] disp_kern; // Dispersal kernel
-        vector[n_seedling_plots] mu;
-        matrix[n_seedling_plots, n_overstory_trees] height_difference_scalar;
-
-        height_difference_scalar = b0_ht + b1_ht * ht_diff;
-
-        for (j in 1:n_overstory_trees) {
-            for (i in 1:n_seedling_plots) {
-                disp_kern[i, j] = k / (pi() * a) * 
-                                        pow(1 + square(r[i, j]) / a, -1-k) *
-                                        height_difference_scalar[i, j];
-            }
-        }
-        
-        b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
-            
-        mu = seedling_plot_area * disp_kern * q_fun(b, n_overstory_trees, overstory_tree_size); 
-
-        return(mu);
-    }
 }
 
 data {
     // Area of seed traps (meters)
     real<lower=0> seedling_plot_area; 
     
-    // Number of trees and number of seedling plots
-    int<lower=1> n_overstory_trees;
+    // Number of seedling plots
     int<lower=1> n_seedling_plots;
+    
+    // Number of tree-plot combinations that are < 300 m
+    int obs;
+    
+    // Number of overstory trees for each plot
+    int<lower=0> n_overstory_trees[n_seedling_plots];
+    
+    // Index of where each seedling plot starts in dist_vector
+    int pos[n_seedling_plots];
 
-    // Distance matrix (seedling plots to overstory trees)
-    matrix<lower=0>[n_seedling_plots, n_overstory_trees] r;
+    // Pairwise distances (seedling plots to overstory trees), in vector form
+    vector[obs] dist_vector;
 
-    // Elevation difference matrix (seedling plots to overstory trees)
-    matrix[n_seedling_plots, n_overstory_trees] ht_diff;
+    // Elevation differences (seedling plots to overstory trees), in vector form
+    vector[obs] htdiff_vector;
 
     // Size of overstory trees
-    vector<lower=0>[n_overstory_trees] overstory_tree_size; 
+    vector[obs] overstory_tree_size; 
     
     // Number of seedlings in plots
     int<lower=0> seedling_counts[n_seedling_plots];
@@ -65,37 +45,54 @@ data {
     real p_alpha[2];
     real p_inv_k_real[2];
     real p_mu_beta[2];
-    real p_b0_ht[2];
     real p_b1_ht[2];
 }
 
 parameters {
-    real alpha; // (Log) of 2Dt scale parameter
+    real<lower=1> alpha; // (Log) of 2Dt scale parameter
     real inv_k_real; // Logit transform of inverse of k
-    real mu_beta; // Mean log of b
-    real b0_ht; // Intercept for elevation difference effect
-    real b1_ht; // Slope for elevation difference effect 
+    real<lower=0> mu_beta; // Mean log of b
+    real<upper=-4> log_b1_ht; // Log slope for elevation difference effect 
 }
 
 transformed parameters {
-    real a; // Scale parameter
+    real<lower=0> a; // Scale parameter
     real k; // Shape parameter
     a = exp(alpha);
     k = inv(2 * inv_logit(inv_k_real));
+    
+    vector[n_seedling_plots] mu; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
+    
+    real b; // fecundity multiplier parameter
+    
+    b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
+
+    real b1_ht;
+
+    b1_ht = exp(log_b1_ht);
+
+    // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
+    for(i in 1:n_seedling_plots){
+        
+        //TODO: can make this easier to read by computing each term first?
+        
+        mu[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
+          exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+          q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
+          seedling_plot_area;
+          
+          //TODO: where does the area (m) come into this expression besides seedling_plot_area?
+    }
+    
 }
 
 model {
-    vector[n_seedling_plots] mu; // Mean number of seedlings per plot
-    
-    alpha ~ normal(p_alpha[1], p_alpha[2]);
-	inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
-    mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
-    b0_ht ~ normal(p_b0_ht[1], p_b0_ht[2]);
-    b1_ht ~ normal(p_b1_ht[1], p_b1_ht[2]);
 
-    mu = calc_mu(a, k, mu_beta, b0_ht, b1_ht, seedling_plot_area, n_overstory_trees, n_seedling_plots, r, ht_diff,
-                overstory_tree_size);
-                
+    alpha ~ normal(p_alpha[1], p_alpha[2]);
+	  inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
+    mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
+    log_b1_ht ~ normal(p_b1_ht[1], p_b1_ht[2]);
+
     seedling_counts ~ poisson(mu);
 }
 
@@ -109,25 +106,31 @@ generated quantities {
     real rmean;
     
     {
-        //matrix[ntrap, nyear] mu;
+
         vector[n_seedling_plots] mu_v;
         int seedling_counts_sim[n_seedling_plots];
         vector[n_seedling_plots] ll_sim;
-        mu_v = calc_mu(a, k, mu_beta, b0_ht, b1_ht, seedling_plot_area, n_overstory_trees, n_seedling_plots, r, ht_diff,
-                overstory_tree_size);
-                     
-        //mu_v = to_vector(mu);
+    
+        for(i in 1:n_seedling_plots){
+            mu_v[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
+              exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+              q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
+              seedling_plot_area;
+        }
+    
+    
         nnz = 0;
         for (i in 1:n_seedling_plots) {
             log_lik[i] = poisson_lpmf(seedling_counts[i] | mu_v[i]);
-            seedling_counts_sim[i] = poisson_rng(mu_v[i]);
-            ll_sim[i] = poisson_lpmf(seedling_counts_sim[i] | mu_v[i]);
-            if (seedling_counts_sim[i] > 0) nnz = nnz + 1;
+            // seedling_counts_sim[i] = poisson_rng(mu_v[i]);
+            // ll_sim[i] = poisson_lpmf(seedling_counts_sim[i] | mu_v[i]);
+            // if (seedling_counts_sim[i] > 0) nnz = nnz + 1;
         }
-        pval = sum(ll_sim) < sum(log_lik);
-        tot_seedlings = sum(seedling_counts_sim);
+        // pval = sum(ll_sim) < sum(log_lik);
+        // tot_seedlings = sum(seedling_counts_sim);
+        
     }
-    
+
     rmode = 0;
     rmed = sqrt(a * (pow(2, 1/k) - 1));
     rmean = sqrt(pi() * a) / 2 * tgamma(k - 0.5) / tgamma(k);

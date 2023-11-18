@@ -7,11 +7,6 @@ library(rstan)
 
 library(here)
 
-## Convenience functions ####
-source(here("scripts/convenience_functions.R"))
-# ^ This defines the function 'datadir', which takes a string argument and prepends it with the path to the data directory.
-#   It allows you to make all the paths in the script be relative to the data directory.
-
 
 fit_stan_model = function(dataset_name, # which dataset to model (corresponding data files in datadir/prepped-for-stan/{dataset_name})
                           disp_mod, # 2Dt or exppow
@@ -21,7 +16,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
                           n_chains, # stan n chains
                           n_cores) {  # stan n cores
 
-  ## Load priors and arrange into list ##
+  ## Load priors and arrange into list. Load prior values from the code repo. ##
   
   disp_priors <- read_csv("scripts/dispersal-modeling/dispersal-kernel-modeling/priors/disp_priors.csv") %>%
     filter(model == disp_mod) %>%
@@ -37,38 +32,35 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
   priors_list <- setNames(map2(priors$prior_mean, priors$prior_sd, c), 
                           priors$param)
   
+
+  ## Load prepped dataset (corresponding data files in datadir/prepped-for-stan_ragged/{dataset_name}) ##
   
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
   
-  
-  ## Load prepped dataset (corresponding data files in datadir/prepped-for-stan/{dataset_name}) ##
-  
-  prepped_data_dir = datadir(paste0("prepped-for-stan/", dataset_name))
-  
-  seedling_plot_area = read_file(paste0(prepped_data_dir,"/plot-area.txt")) %>% as.numeric
-  r = read.table(paste0(prepped_data_dir,"/dist-mat.txt")) %>% as.matrix
-  colnames(r) = NULL
-  ht_diffs = read.table(paste0(prepped_data_dir,"/ht-diff-mat.txt")) %>% as.matrix
-  colnames(ht_diffs) = NULL
-  overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-tree-size.txt")) %>% as.numeric
-  seedling_counts = read_lines(paste0(prepped_data_dir, "/seedling-counts.txt")) %>% as.numeric
-  
-  
+  seedling_plot_area = read_file(file.path(prepped_data_dir, "plot-area.txt")) %>% as.numeric
+  dist_vector = read_lines(file.path(prepped_data_dir, "dist-vector.txt")) %>% as.numeric |> as.vector()
+  htdiff_vector = read_lines(file.path(prepped_data_dir, "htdiff-vector.txt"))%>% as.numeric |> as.vector()
+  overstory_treesize_vector = read_lines(file.path(prepped_data_dir, "overstory-treesize-vector.txt")) %>% as.numeric |> as.vector()
+  seedling_counts = read_lines(file.path(prepped_data_dir, "seedling-counts.txt")) %>% as.numeric |> as.vector()
+  n_overstory_trees = read_lines(file.path(prepped_data_dir, "n-overstory-trees.txt")) |> as.numeric() |> as.vector()
+  pos = read_lines(file.path(prepped_data_dir, "pos.txt")) |> as.numeric() |> as.vector()
   
   ## Compile data and priors into list for Stan
   
-  data_list <- lst(seedling_plot_area, n_overstory_trees = length(overstory_tree_size), 
-                   n_seedling_plots = length(seedling_counts), overstory_tree_size = overstory_tree_size,
-                   seedling_counts = as.vector(seedling_counts))    
-  
-  overstorytree_seedlingplot_dists = list(r = r)
-  overstorytree_seedlingplot_ht_diffs = list(ht_diff = ht_diffs)
-  
-  data_list <- c(data_list, overstorytree_seedlingplot_dists, overstorytree_seedlingplot_ht_diffs, priors_list)
+  data_list <- lst(seedling_plot_area,
+                   n_overstory_trees, 
+                   n_seedling_plots = length(seedling_counts),
+                   overstory_tree_size = overstory_treesize_vector,
+                   seedling_counts,
+                   dist_vector,
+                   htdiff_vector,
+                   obs = length(dist_vector),
+                   pos)    
+
+  data_list = c(data_list, priors_list)
   
   # Check for missing data
   if (any(is.na(unlist(data_list)))) stop("Missing values in data.")
-  
-  
   
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
@@ -77,10 +69,12 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
   res <- stan(model_file, data = data_list, chains = n_chains, 
               warmup = n_warmup, iter = n_iter, cores = n_cores)
   
-  model_dir = datadir(paste0("stan-models/"))
+  model_dir = file.path(data_dir, "stan-models/")
   dir.create(model_dir)
   model_filename = paste0(model_dir, "stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds")
   
   saveRDS(res,model_filename)
+  
+  return(res)
 
 }
