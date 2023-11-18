@@ -23,7 +23,7 @@ source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/05_examine-fit
 # And the other called "shadow" which is the seed shadow from a tree of an average size for the site (combines kernel and fecundity)
 
 
-site_name = "delta"
+site_name = "valley"
 species = "allsp"
 plot_size_ha = 0.0201  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
