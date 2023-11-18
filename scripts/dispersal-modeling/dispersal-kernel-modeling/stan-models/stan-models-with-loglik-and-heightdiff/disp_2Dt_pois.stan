@@ -61,6 +61,16 @@ transformed parameters {
     a = exp(alpha);
     k = inv(2 * inv_logit(inv_k_real));
     
+    //// Dummy values to use in case there are no overstory trees for a given plot
+    vector[1] dummy_tree_size;
+    dummy_tree_size[1] = 10;
+    
+    vector[1] dummy_tree_dist;
+    dummy_tree_dist[1] = 400;
+    
+    // vector[1] dummy_height_difference_scalar;
+    // dummy_height_difference_scalar[1] = 1;
+    
     vector[n_seedling_plots] mu; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
     
     real b; // fecundity multiplier parameter
@@ -74,16 +84,28 @@ transformed parameters {
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
     for(i in 1:n_seedling_plots){
         
-        //TODO: can make this easier to read by computing each term first?
-        
-        mu[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
-          exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
-          q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
-          seedling_plot_area;
+       if(n_overstory_trees[i] != 0) {
+       
+          //TODO: can make this easier to read by computing each term first?
           
+          mu[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
+            exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+            q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
+            seedling_plot_area;
+            
           //TODO: where does the area (m) come into this expression besides seedling_plot_area?
+          
+       } else {
+         
+           // if there are no trees within 300 m, assume instead there is one small tree at 400 m, because mu can't be exactly 0
+           mu[i] = sum( k / (pi() * a) * pow(1 + square(   dummy_tree_dist   ) / a, -1-k) .*  // kernel for 400 m distance
+              //dummy_height_difference_scalar .*                                             // height difference scalar
+              q_fun(b, 1, dummy_tree_size)) *                                                 // q fun (1 tree, 10 m height)
+              seedling_plot_area;
+         
+       }
     }
-    
+
 }
 
 model {
