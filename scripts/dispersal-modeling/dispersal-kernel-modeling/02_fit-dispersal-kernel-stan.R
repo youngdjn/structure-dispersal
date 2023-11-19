@@ -23,24 +23,24 @@ m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
                 n_iter = 2500,                             # stan iter, includes warmup
-                n_chains = 3,                             # stan n chains
-                n_cores = 3)                              # stan n cores
+                n_chains = 4,                             # stan n chains
+                n_cores = 5)                              # stan n cores
 
 m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
                 n_iter = 2500,                             # stan iter, includes warmup
-                n_chains = 6,                             # stan n chains
-                n_cores = 6)                              # stan n cores
+                n_chains = 4,                             # stan n chains
+                n_cores = 4)                              # stan n cores
 
 m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
                 n_iter = 2500,                             # stan iter, includes warmup
-                n_chains = 6,                             # stan n chains
-                n_cores = 6)                              # stan n cores
+                n_chains = 4,                             # stan n chains
+                n_cores = 4)                              # stan n cores
 
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
 m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
