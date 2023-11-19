@@ -55,7 +55,7 @@ disp_mod = "2Dt"
 err_mod = "pois"
 
 load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
-ggsave(datadir(paste0("fitted-observed-seedlings/", site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
+ggsave(file.path(data_dir, "fitted-observed-seedlings", paste0(site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
 
 
 
@@ -63,7 +63,7 @@ disp_mod = "2Dt"
 err_mod = "pois"
 
 load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
-ggsave(datadir(paste0("fitted-observed-seedlings/", site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
+ggsave(file.path(data_dir, "fitted-observed-seedlings", paste0(site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
 
 
 #### !!! NOTE: The functions underlying the code below still have to be ported to the new ragged array format. Derek can help with this if you would like this for the presentation.

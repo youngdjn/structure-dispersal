@@ -52,7 +52,7 @@ parameters {
     real<lower=1> alpha; // (Log) of 2Dt scale parameter
     real inv_k_real; // Logit transform of inverse of k
     real<lower=0> mu_beta; // Mean log of b
-    real<upper=-4> log_b1_ht; // Log slope for elevation difference effect 
+    real<upper=-3> log_b1_ht; // Log slope for elevation difference effect 
 }
 
 transformed parameters {
@@ -74,16 +74,17 @@ transformed parameters {
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
     for(i in 1:n_seedling_plots){
         
-        //TODO: can make this easier to read by computing each term first?
-        
-        mu[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
-          exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
-          q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
-          seedling_plot_area;
+          //TODO: can make this easier to read by computing each term first?
           
+          mu[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
+            exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+            q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
+            seedling_plot_area;
+            
           //TODO: where does the area (m) come into this expression besides seedling_plot_area?
+
     }
-    
+
 }
 
 model {
