@@ -70,7 +70,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
               warmup = n_warmup, iter = n_iter, cores = n_cores)
   
   model_dir = file.path(data_dir, "stan-models/")
-  dir.create(model_dir)
+  if(!file.exists(model_dir)) dir.create(model_dir)
   model_filename = paste0(model_dir, "stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds")
   
   saveRDS(res,model_filename)
