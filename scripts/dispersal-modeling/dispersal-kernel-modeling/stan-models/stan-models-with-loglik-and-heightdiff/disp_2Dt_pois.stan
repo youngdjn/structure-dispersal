@@ -14,7 +14,7 @@ functions {
     // Calculate kernel density per tree given distance and kernel parameters
     vector kernel_fun(real a, real k, int n_overstory_trees, vector dist_vector) {
       vector[n_overstory_trees] kernel_value;
-      kernel_value = k / (pi() * a) * pow(1 + square(dist_vector) / a, -1-k); // 2Dt kernel 
+      kernel_value = k / (pi() * a) * pow(1 + square(dist_vector) / a, -1-k); // 2Dt kernel            
       //kernel_value =  k / (2*pi() * square(a) * tgamma(2/k)) * exp(- pow( dist_vector / a, k)); // exppow kernel 
       return(kernel_value);
     }
@@ -22,7 +22,7 @@ functions {
     // Calculate height difference adjustment given height difference and height model parameters 
     vector htdiff_fun(real b1_ht, int n_overstory_trees, vector htdiff_vector) {
       vector[n_overstory_trees] htdiff_value;
-      htdiff_value = exp( b1_ht * htdiff_vector);
+      htdiff_value = exp( b1_ht * htdiff_vector );
       return(htdiff_value);
     }
 }
