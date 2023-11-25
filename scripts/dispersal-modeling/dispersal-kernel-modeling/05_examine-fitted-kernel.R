@@ -6,7 +6,9 @@ library(mgcv)
 library(terra)
 library(rstan)
 
-data_dir = readLines(here("data_dir.txt"), n=1)
+#data_dir = readLines(here("data_dir.txt"), n=1)
+# for Andrew's local work
+data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
 
 
 # The main functions used by this script. For parameter definitions, see this file.
@@ -18,9 +20,9 @@ source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/05_examine-fit
 # And the other called "shadow" which is the seed shadow from a tree of an average size for the site (combines kernel and fecundity)
 
 
-site_name = "valley"
+site_name = "chips"
 species = "allsp"
-plot_size_ha = 0.0201  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
+plot_size_ha = 0.0113  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                       disp_mod = "2Dt",
@@ -29,7 +31,14 @@ fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-
 fitted_exppow = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                           disp_mod = "2Dt",
                                           err_mod = "pois")
+loo_2Dt = loo(fitted_2Dt$model)
+loo_exppow = loo(fitted_exppow$model)
 loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
+
+# Some Pareto k values are too high - check which ones 
+loo::pareto_k_influence_values(loo_2Dt)
+loo::pareto_k_ids(loo_2Dt)
+summary(fitted_2Dt$model)[[1]][loo::pareto_k_ids(loo_2Dt),]
 
 
 ## Combine them so they can be plotted together

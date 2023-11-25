@@ -71,7 +71,7 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
   ## Load the fitted model and get the parameter samples
   model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds"))
   model_fit = readRDS(model_filename)
-  samples = extract(model_fit)
+  samples = rstan::extract(model_fit)
   
   ## Get LOOIC and kernel params
   a = loo(model_fit)
