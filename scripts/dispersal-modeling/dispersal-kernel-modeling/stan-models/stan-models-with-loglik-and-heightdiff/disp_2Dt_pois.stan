@@ -10,7 +10,18 @@ functions {
         // Or adding an intercept: q = b * (pow(overstory_tree_size, zeta) - eta)
         return(q);
     }
-
+    
+    vector kernel_fun(real a, real k, int n_overstory_trees, vector dist_vector) {
+      vector kernel_value[n_overstory_trees];
+      kernel_value = k / (pi() * a) * pow(1 + square(dist_vector) / a, -1-k); // 2Dt kernel 
+      //kernel_value =  k / (2*pi() * square(a) * tgamma(2/k)) * exp(- pow( dist_vector / a, k)); // exppow kernel 
+      return(kernel_value);
+    }
+    
+    vector htdiff_fun(real bt_ht, int n_overstory_trees, vector htdiff_vector) { 
+      vector htdiff_value[n_overstory_trees];
+      htdiff_value = exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ))
+    }
 }
 
 data {
@@ -60,12 +71,12 @@ transformed parameters {
     real k; // Shape parameter
     real mu[n_seedling_plots]; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
     real b; // fecundity multiplier parameter
-    real b1_ht;
+    real b1_ht; // height model multiplier on log scale
 
     a = exp(alpha);
     k = inv(2 * inv_logit(inv_k_real));
     b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
-    b1_ht = exp(log_b1_ht);
+    b1_ht = exp(log_b1_ht); // height model multiplier parameter has lognorml prior via normal prior on log_b1_ht
 
 
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
@@ -73,8 +84,8 @@ transformed parameters {
         
           //TODO: can make this easier to read by computing each term first?
           
-          mu[i] = sum( k / (pi() * a) * pow(1 + square( segment(dist_vector, pos[i], n_overstory_trees[i]) ) / a, -1-k) .*
-            exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+          mu[i] = sum( kernel_fun(a, k, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) )  .* // kernel function
+            htdiff_fun(b1_ht, n_overstory_trees[i], segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference function
             q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
             seedling_plot_area;
             
@@ -110,10 +121,10 @@ generated quantities {
         vector[n_seedling_plots] ll_sim;
     
         for(i in 1:n_seedling_plots){
-            mu_v[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
-              exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
-              q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
-              seedling_plot_area;
+            mu_v[i] = sum( kernel_fun(a, k, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) )  .* // kernel function
+            htdiff_fun(b1_ht, n_overstory_trees[i], segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference function
+            q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
+            seedling_plot_area;
         }
     
     
