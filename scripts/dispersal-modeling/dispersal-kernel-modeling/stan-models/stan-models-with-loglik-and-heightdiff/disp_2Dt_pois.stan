@@ -58,25 +58,22 @@ parameters {
 transformed parameters {
     real<lower=0> a; // Scale parameter
     real k; // Shape parameter
-    a = exp(alpha);
-    k = inv(2 * inv_logit(inv_k_real));
-    
-    vector[n_seedling_plots] mu; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
-    
+    real mu[n_seedling_plots]; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
     real b; // fecundity multiplier parameter
-    
-    b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
-
     real b1_ht;
 
+    a = exp(alpha);
+    k = inv(2 * inv_logit(inv_k_real));
+    b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
     b1_ht = exp(log_b1_ht);
+
 
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
     for(i in 1:n_seedling_plots){
         
           //TODO: can make this easier to read by computing each term first?
           
-          mu[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
+          mu[i] = sum( k / (pi() * a) * pow(1 + square( segment(dist_vector, pos[i], n_overstory_trees[i]) ) / a, -1-k) .*
             exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
             q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
             seedling_plot_area;
