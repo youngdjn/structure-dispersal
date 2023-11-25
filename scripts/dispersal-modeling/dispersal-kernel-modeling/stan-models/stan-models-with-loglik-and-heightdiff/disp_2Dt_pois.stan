@@ -11,16 +11,19 @@ functions {
         return(q);
     }
     
+    // Calculate kernel density per tree given distance and kernel parameters
     vector kernel_fun(real a, real k, int n_overstory_trees, vector dist_vector) {
-      vector kernel_value[n_overstory_trees];
+      vector[n_overstory_trees] kernel_value;
       kernel_value = k / (pi() * a) * pow(1 + square(dist_vector) / a, -1-k); // 2Dt kernel 
       //kernel_value =  k / (2*pi() * square(a) * tgamma(2/k)) * exp(- pow( dist_vector / a, k)); // exppow kernel 
       return(kernel_value);
     }
     
-    vector htdiff_fun(real bt_ht, int n_overstory_trees, vector htdiff_vector) { 
-      vector htdiff_value[n_overstory_trees];
-      htdiff_value = exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ))
+    // Calculate height difference adjustment given height difference and height model parameters 
+    vector htdiff_fun(real b1_ht, int n_overstory_trees, vector htdiff_vector) {
+      vector[n_overstory_trees] htdiff_value;
+      htdiff_value = exp( b1_ht * htdiff_vector);
+      return(htdiff_value);
     }
 }
 
@@ -84,7 +87,7 @@ transformed parameters {
         
           //TODO: can make this easier to read by computing each term first?
           
-          mu[i] = sum( kernel_fun(a, k, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) )  .* // kernel function
+          mu[i] = sum( kernel_fun(a, k, n_overstory_trees[i], segment(dist_vector, pos[i], n_overstory_trees[i]) )  .* // kernel function
             htdiff_fun(b1_ht, n_overstory_trees[i], segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference function
             q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
             seedling_plot_area;
