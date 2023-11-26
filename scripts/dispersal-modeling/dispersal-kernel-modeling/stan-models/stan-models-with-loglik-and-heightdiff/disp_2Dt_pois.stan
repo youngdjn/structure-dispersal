@@ -73,7 +73,7 @@ transformed parameters {
         
           //TODO: can make this easier to read by computing each term first?
           
-          mu[i] = sum( k / (pi() * a) * pow(1 + square( segment(dist_vector, pos[i], n_overstory_trees[i]) ) / a, -1-k) .*
+          mu[i] = sum( k / (pi() * a) * pow(1 + square( segment(dist_vector, pos[i], n_overstory_trees[i]) ) / a, -k-1) .*
             exp( b1_ht) * segment(htdiff_vector, pos[i], n_overstory_trees[i])  .*                                             // height difference scalar
             q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
             seedling_plot_area;
@@ -110,7 +110,7 @@ generated quantities {
         vector[n_seedling_plots] ll_sim;
     
         for(i in 1:n_seedling_plots){
-            mu_v[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
+            mu_v[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -k-1) .*
               exp( b1_ht) * segment(htdiff_vector, pos[i], n_overstory_trees[i])  .*                                             // height difference scalar
               q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
               seedling_plot_area;
