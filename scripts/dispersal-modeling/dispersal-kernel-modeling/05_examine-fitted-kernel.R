@@ -29,8 +29,10 @@ fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-
                                       err_mod = "pois")
 
 fitted_exppow = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
-                                          disp_mod = "2Dt",
+                                          disp_mod = "exppow",
                                           err_mod = "pois")
+
+# Calculate and compare looic 
 loo_2Dt = loo(fitted_2Dt$model)
 loo_exppow = loo(fitted_exppow$model)
 loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
@@ -39,6 +41,13 @@ loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
 loo::pareto_k_influence_values(loo_2Dt)
 loo::pareto_k_ids(loo_2Dt)
 summary(fitted_2Dt$model)[[1]][loo::pareto_k_ids(loo_2Dt),]
+
+# Visually check convergence of the main parameters 
+disp_params = c("a", "k", "b1_ht", "b")
+plot(fitted_2Dt$model, plotfun = "trace", pars = disp_params) 
+plot(fitted_exppow$model, plotfun = "trace", pars = disp_params) 
+
+
 
 
 ## Combine them so they can be plotted together
