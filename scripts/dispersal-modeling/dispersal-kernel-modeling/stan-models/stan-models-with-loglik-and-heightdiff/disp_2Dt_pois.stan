@@ -65,7 +65,7 @@ transformed parameters {
     a = exp(alpha);
     k = inv(2 * inv_logit(inv_k_real));
     b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
-    b1_ht = exp(log_b1_ht);
+    b1_ht = exp(log_b1_ht); // height difference multiplier parameter has lognormal prior via normal prior on b1_ht
 
 
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
@@ -74,7 +74,7 @@ transformed parameters {
           //TODO: can make this easier to read by computing each term first?
           
           mu[i] = sum( k / (pi() * a) * pow(1 + square( segment(dist_vector, pos[i], n_overstory_trees[i]) ) / a, -1-k) .*
-            exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+            exp( b1_ht) * segment(htdiff_vector, pos[i], n_overstory_trees[i])  .*                                             // height difference scalar
             q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
             seedling_plot_area;
             
@@ -111,7 +111,7 @@ generated quantities {
     
         for(i in 1:n_seedling_plots){
             mu_v[i] = sum( k / (pi() * a) * pow(1 + square(   segment(dist_vector, pos[i], n_overstory_trees[i])   ) / a, -1-k) .*
-              exp( b1_ht * segment(htdiff_vector, pos[i], n_overstory_trees[i]) ) .*                                             // height difference scalar
+              exp( b1_ht) * segment(htdiff_vector, pos[i], n_overstory_trees[i])  .*                                             // height difference scalar
               q_fun(b, n_overstory_trees[i],    segment(overstory_tree_size, pos[i], n_overstory_trees[i])   ) ) *               // q fun
               seedling_plot_area;
         }
