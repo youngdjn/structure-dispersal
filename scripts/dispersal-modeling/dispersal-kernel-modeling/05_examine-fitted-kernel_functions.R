@@ -62,14 +62,14 @@ select_kernel_function = function(disp_mod) {
 
 ## Function to summarize a fitted kernel from a single tree for a given stan model,
 ##  as well as a fitted "seedling shadow" for a single tree of average size
-get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
+get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod) {
   
   ## Get tree size from the modeled dataset
   prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
   overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-treesize-vector.txt")) %>% as.numeric
   
   ## Load the fitted model and get the parameter samples
-  model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds"))
+  model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,"_", fecund_mod,".rds"))
   model_fit = readRDS(model_filename)
   samples = rstan::extract(model_fit)
   
@@ -101,7 +101,8 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
                              fit = apply(kern_out,1,mean),
                              lwr = apply(kern_out,1,quantile,probs=c(0.25)),
                              upr = apply(kern_out,1,quantile,probs=c(0.75)),
-                             disp_mod = disp_mod)
+                             disp_mod = disp_mod, 
+                             fecund_mod = fecund_mod)
   #Q: Should fit be summarized by mean or median?
   
   # Summarize a fitted "seedling shadow" from a single tree of average size (incorporates fitted fecundity estimation)
@@ -196,7 +197,7 @@ plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, fitted
 }
 
 
-load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim) {
+load_fit_and_plot = function(dataset_name, disp_mod, err_mod, fecund_mod, plot_size_ha, ylim) {
 
   ### Run just the steps needed to make a fitted-observed plot (and fit metrics) for a specific fitted model
   
@@ -209,7 +210,7 @@ load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim
   n_overstory_trees = read_lines(file.path(prepped_data_dir, "n-overstory-trees.txt")) %>% as.numeric
   
   ## Load the fitted model and extract the parameter samples
-  model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds"))
+  model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,"_", fecund_mod,".rds"))
   model_fit = readRDS(model_filename)
   samples = rstan::extract(model_fit)
   
