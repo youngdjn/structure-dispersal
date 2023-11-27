@@ -110,9 +110,24 @@ m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which data
 m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                    disp_mod = "2Dt",                         # 2Dt or exppow
                    err_mod = "pois",                         # pois only currently
-                   fecund_mod = "multiplier_exponent",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
+                   fecund_mod = "multiplier",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
                    n_warmup = 500,                           # stan warmup iter
                    n_iter = 2500,                             # stan iter, includes warmup
                    n_chains = 6,                             # stan n chains
                    n_cores = 6)    
 
+# looic 4525.3
+
+m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+                          disp_mod = "2Dt",                         # 2Dt or exppow
+                          err_mod = "pois",                         # pois only currently
+                          fecund_mod = "multiplier_exponent",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
+                          n_warmup = 500,                           # stan warmup iter
+                          n_iter = 2500,                             # stan iter, includes warmup
+                          n_chains = 6,                             # stan n chains
+                          n_cores = 6)  
+
+disp_params = c("a", "k", "b1_ht", "b", "zeta")
+plot(m, plotfun = "trace", pars = disp_params)
+
+# looic 4455.4
