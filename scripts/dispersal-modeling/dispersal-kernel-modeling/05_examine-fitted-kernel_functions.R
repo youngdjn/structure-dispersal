@@ -15,7 +15,7 @@ source(here("scripts/convenience_functions.R"))
 ## Function to get tree fecundity from mu_beta (the log of the fecundity scalar b) and tree size
 ## If mu_beta is a vector, it is a set of samples of the parameter from the model
 ## If overstory_tree_size is a vector, it is a set of sizes of multiple trees
-q_fun = function(mu_beta, overstory_tree_size) {
+q_fun = function(mu_beta, zeta = 1, overstory_tree_size) {
 
   # get fecundity scalar b from mu_beta (its log)
   b = exp(mu_beta)
@@ -26,7 +26,7 @@ q_fun = function(mu_beta, overstory_tree_size) {
   overstory_tree_size_matrix = matrix(overstory_tree_size, byrow=FALSE, nrow=length(overstory_tree_size), ncol = length(mu_beta))
   
   ## here is where the actual fecundity calculation is performed
-  q = b_matrix * overstory_tree_size_matrix
+  q = b_matrix * (overstory_tree_size_matrix ^ zeta)
   
   # if this function was passed a single overstory tree size value (and thus q has 1 row), return a vector, not a matrix
   if(length(overstory_tree_size) == 1) {
@@ -71,7 +71,7 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
   ## Load the fitted model and get the parameter samples
   model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds"))
   model_fit = readRDS(model_filename)
-  samples = extract(model_fit)
+  samples = rstan::extract(model_fit)
   
   ## Get LOOIC and kernel params
   a = loo(model_fit)
@@ -121,7 +121,7 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
 #### Predict seedling density at each plot ####
 
 ### Function to predict seedl dens for a plot by summing the contributions of all trees
-predict_seedl_plot = function(tree_dists, tree_sizes, samples) {
+predict_seedl_plot = function(tree_dists, htdiffs, tree_sizes, samples) {
 
   # Pick the kernel function based on the specified disp_mod
   kernel_function = select_kernel_function(disp_mod)
@@ -136,10 +136,13 @@ predict_seedl_plot = function(tree_dists, tree_sizes, samples) {
   # But if it's a vector, that means we supplied only a single "sample" (a point estimate of model fit), so don't transpose or it will turn the vector to a matrix
   
   ## Get the fitted fecundity for each tree
-  fecundity_out = q_fun(samples$mu_beta, tree_sizes) # matrix with one row per tree, one column per model sample
+  fecundity_out = q_fun(samples$mu_beta, samples$zeta, tree_sizes) # matrix with one row per tree, one column per model sample
+  
+  ## Get the elevation difference scalar
+  elev_diff_scalar = exp(samples$b1_ht * htdiffs)
   
   ## Summarize the seed rain reaching the plot summed across all trees' contributions
-  seeds_out_bytree = kern_out * fecundity_out # one row for each tree, one column for each model sample
+  seeds_out_bytree = kern_out * fecundity_out * elev_diff_scalar # one row for each tree, one column for each model sample
   seeds_out = colSums(seeds_out_bytree)
   summarized_seedlingshadow = data.frame(fit = mean(seeds_out),
                                           lwr = quantile(seeds_out,probs=0.25),
@@ -196,7 +199,7 @@ plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, fitted
 }
 
 
-load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim) {
+load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim, htdiffs = 0) {
 
   ### Run just the steps needed to make a fitted-observed plot (and fit metrics) for a specific fitted model
   
@@ -211,7 +214,7 @@ load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim
   ## Load the fitted model and extract the parameter samples
   model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds"))
   model_fit = readRDS(model_filename)
-  samples = extract(model_fit)
+  samples = rstan::extract(model_fit)
   
   # Summarize across the samples, dropping uncertainty (faster predictions)
   samples_median = map(samples,median)
@@ -231,7 +234,7 @@ load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim
 
   # Make predictions across all plots, but using just the point estimate of each parameter (no uncertainty)
   #plan(multisession(workers=8))
-  plot_seedl_preds = future_map2(tree_dists_by_plot, overstory_treesize_by_plot, predict_seedl_plot, samples = samples_median) |> list_rbind()
+  plot_seedl_preds = future_map2(tree_dists_by_plot, overstory_treesize_by_plot, predict_seedl_plot, samples = samples_median, htdiffs = 0) |> list_rbind()
   row.names(plot_seedl_preds) = NULL
   
   ## Combine with observed seedl
