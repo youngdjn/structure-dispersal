@@ -60,7 +60,7 @@ parameters {
 transformed parameters {
     real<lower=0> a; // Scale parameter
     real k; // Shape parameter
-    real mu[n_seedling_plots]; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
+    real mu[n_seedling_plots]; // Mean number of seedlings per plot 
     real b; // fecundity multiplier parameter
     real b1_ht;
 
