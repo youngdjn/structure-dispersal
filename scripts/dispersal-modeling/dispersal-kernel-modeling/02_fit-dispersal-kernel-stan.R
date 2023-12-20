@@ -12,7 +12,7 @@ data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
 source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/02_fit-dispersal-kernel-stan_functions.R"))
 
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
-m = fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
@@ -20,7 +20,7 @@ m = fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset t
                 n_chains = 4,                             # stan n chains
                 n_cores = 8)                              # stan n cores
 
-m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 100,                           # stan warmup iter
@@ -28,7 +28,7 @@ m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to
                 n_chains = 4,                             # stan n chains
                 n_cores = 8)                              # stan n cores
 
-m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
@@ -36,7 +36,7 @@ m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to
                 n_chains = 4,                             # stan n chains
                 n_cores = 8)                              # stan n cores
 
-m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
@@ -45,16 +45,16 @@ m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to
                 n_cores = 4)                              # stan n cores
 
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
-m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
-                disp_mod = "exppow",                         # 2Dt or exppow
-                err_mod = "pois",                         # pois only currently
-                n_warmup = 500,                           # stan warmup iter
-                n_iter = 2500,                             # stan iter, includes warmup
-                n_chains = 6,                             # stan n chains
-                n_cores = 6)                              # stan n cores
+#m = fit_stan_model (dataset_name = "crater-pipj-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+                # disp_mod = "exppow",                         # 2Dt or exppow
+                # err_mod = "pois",                         # pois only currently
+                # n_warmup = 500,                           # stan warmup iter
+                # n_iter = 2500,                             # stan iter, includes warmup
+                # n_chains = 6,                             # stan n chains
+                # n_cores = 6)                              # stan n cores
 
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
-m = fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "exppow",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
@@ -63,7 +63,7 @@ m = fit_stan_model (dataset_name = "valley-allsp-height-01",   # which dataset t
                 n_cores = 6)                              # stan n cores
 
 
-m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "2Dt",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 200,                           # stan warmup iter
@@ -71,7 +71,7 @@ m = fit_stan_model (dataset_name = "chips-allsp-height-01",   # which dataset to
                 n_chains = 6,                             # stan n chains
                 n_cores = 6)                              # stan n cores
 
-m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+#m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                 disp_mod = "exppow",                         # 2Dt or exppow
                 err_mod = "pois",                         # pois only currently
                 n_warmup = 500,                           # stan warmup iter
@@ -97,31 +97,33 @@ m = fit_stan_model (dataset_name = "delta-allsp-height-01",   # which dataset to
 #### Fit a model for a specific site, disp function, error model, and stan parameters. See 02_fit-dispersal-kernel_functions.R for parameter definitions.
 
 # Base model with multiplier 
-m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+m1 = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                     disp_mod = "2Dt",                         # 2Dt or exppow
                     err_mod = "pois",                         # pois only currently
-                    fecund_mod = "multiplier",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
+                    fecund_mod = "multiplier",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier
                     n_warmup = 500,                           # stan warmup iter
                     n_iter = 2500,                             # stan iter, includes warmup
                     n_chains = 6,                             # stan n chains
                     n_cores = 6)    
 
 # Model with multiplier and exponent 
-m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+m2 = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                    disp_mod = "2Dt",                         # 2Dt or exppow
                    err_mod = "pois",                         # pois only currently
-                   fecund_mod = "multiplier",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
+                   fecund_mod = "multiplier_exponent",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
                    n_warmup = 500,                           # stan warmup iter
                    n_iter = 2500,                             # stan iter, includes warmup
                    n_chains = 6,                             # stan n chains
                    n_cores = 6)    
 
-# looic 4525.3
+loo(m1) # looic 4527
+loo(m2) 
+# looic 4454.3
 
-m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+m3 = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
                           disp_mod = "2Dt",                         # 2Dt or exppow
                           err_mod = "pois",                         # pois only currently
-                          fecund_mod = "multiplier_exponent",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
+                          fecund_mod = "multiplier_exponent_intercept",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
                           n_warmup = 500,                           # stan warmup iter
                           n_iter = 2500,                             # stan iter, includes warmup
                           n_chains = 6,                             # stan n chains
@@ -129,5 +131,28 @@ m = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which data
 
 disp_params = c("a", "k", "b1_ht", "b", "zeta")
 plot(m, plotfun = "trace", pars = disp_params)
+plot(m, plotfun = "trace", pars = disp_params)
+pairs(m, pars = disp_params
 
+    
 # looic 4455.4
+
+
+m4 = fit_stan_model_fecund(dataset_name = "chips-allsp-height-01",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+                           disp_mod = "2Dt",                         # 2Dt or exppow
+                           err_mod = "pois",                         # pois only currently
+                           fecund_mod = "multiplier_exponent_noheight",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept, multiplier_exponent_noheight
+                           n_warmup = 500,                           # stan warmup iter
+                           n_iter = 2500,                             # stan iter, includes warmup
+                           n_chains = 6,                             # stan n chains
+                           n_cores = 6)  
+
+loo(m4) # 4450 
+
+disp_params = c("a", "k", "b1_ht", "b", "zeta")
+plot(m4, plotfun = "trace", pars = disp_params)
+plot(m, plotfun = "trace", pars = disp_params)
+pairs(m, pars = disp_params) 
+
+
+chipstrees <- read.csv(paste0(data_dir, "/prepped-for-stan/chips-allsp-height-01/overstory-tree-size.txt"))
