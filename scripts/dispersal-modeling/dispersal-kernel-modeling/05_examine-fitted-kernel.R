@@ -24,39 +24,66 @@ site_name = "chips"
 species = "allsp"
 plot_size_ha = 0.0113  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
-fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
+fitted_2Dt_height = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                       disp_mod = "2Dt",
                                       err_mod = "pois", 
-                                      fecund_mod = "multiplier")
+                                     fecund_mod = "multiplier_exponent")
 
-fitted_exppow = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
+fitted_exppow_height = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
                                           disp_mod = "exppow",
                                           err_mod = "pois", 
                                           fecund_mod = "multiplier")
+fitted_2Dt_noheight = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-height-01"),
+                               disp_mod = "2Dt",
+                               err_mod = "pois", 
+                               fecund_mod = "multiplier_exponent_noheight")
+
 
 # Calculate and compare looic 
-loo_2Dt = loo(fitted_2Dt$model)
-loo_exppow = loo(fitted_exppow$model)
-loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
+loo_2Dt_height = loo(fitted_2Dt_height$model)
+loo_2Dt_noheight = loo(fitted_2Dt_noheight$model)
+#loo_exppow = loo(fitted_exppow$model)
+loo::loo_compare(loo(fitted_2Dt_height$model), loo(fitted_2Dt_noheight$model))
 
 # Some Pareto k values are too high - check which ones 
-loo::pareto_k_influence_values(loo_2Dt)
-loo::pareto_k_ids(loo_2Dt)
-summary(fitted_2Dt$model)[[1]][loo::pareto_k_ids(loo_2Dt),]
+loo::pareto_k_influence_values(loo_2Dt_height)
+loo::pareto_k_ids(loo_2Dt_height)
+summary(fitted_2Dt_height$model)[[1]][loo::pareto_k_ids(loo_2Dt_height),]
+summary(fitted_2Dt_noheight$model)[[1]][loo::pareto_k_ids(loo_2Dt_height),]
 
 # Visually check convergence of the main parameters 
-disp_params = c("a", "k", "b1_ht", "b")
-plot(fitted_2Dt$model, plotfun = "trace", pars = disp_params) 
-plot(fitted_exppow$model, plotfun = "trace", pars = disp_params) 
+disp_params = c("a", "k", "b1_ht", "b", "zeta")
+plot(fitted_2Dt_height$model, plotfun = "trace", pars = disp_params) 
+plot(fitted_2Dt_noheight$model, plotfun = "trace", pars = disp_params) 
+#plot(fitted_exppow$model, plotfun = "trace", pars = disp_params) 
 
 
 
 
 ## Combine them so they can be plotted together
-kern_summary_comb = bind_rows(fitted_2Dt$kernel, fitted_exppow$kernel)
+#kern_summary_comb = bind_rows(fitted_2Dt$kernel, fitted_exppow$kernel)
+fitted_2Dt_height$kernel = fitted_2Dt_height$kernel |>
+          mutate(height_mod = "yes")
+fitted_2Dt_noheight$kernel = fitted_2Dt_noheight$kernel |>
+  mutate(height_mod = "no")
 
-## Plot them together
-ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_mod)) +
+kern_summary_comb = bind_rows(fitted_2Dt_height$kernel, fitted_2Dt_noheight$kernel)
+
+## Plot them together by dispersal model 
+# ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_mod)) +
+#   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha=0.3, color=NA) +
+#   geom_line(linewidth=1) +
+#   theme_bw(20) +
+#   scale_color_viridis_d(begin=0.3,end=0.7, name="Kernel") +
+#   scale_fill_viridis_d(begin=0.3,end=0.7, name="Kernel") +
+#   labs(x="Distance (m)", y = "Kernel density") +
+#   coord_cartesian(ylim = c(0, 0.0002),
+#                   xlim = c(0, 200))
+# 
+# ggsave(file.path(data_dir, "fitted-dispersal-kernels", paste0(site_name, ".png")), width=8, height=5)
+
+## Plot them together by height model or not
+ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=height_mod, fill=height_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha=0.3, color=NA) +
   geom_line(linewidth=1) +
   theme_bw(20) +
@@ -66,16 +93,17 @@ ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_m
   coord_cartesian(ylim = c(0, 0.0002),
                   xlim = c(0, 200))
 
-ggsave(file.path(data_dir, "fitted-dispersal-kernels", paste0(site_name, ".png")), width=8, height=5)
+## OK this checks whether the dispersal kernel changes when you remove the height model. It doesn't! 
 
 
 ## Make a fitted-observed plot for a specific fitted model. This requires knowing which trees contributed to that plot (at least their distances and sizes).
 dataset_name = paste0(site_name, "-", species, "-height-01")
 disp_mod = "2Dt"
 err_mod = "pois"
+fecund_mod = "multiplier_exponential"
 
-load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
-ggsave(file.path(data_dir, "fitted-observed-seedlings", paste0(site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
+load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, fecund_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
+#ggsave(file.path(data_dir, "fitted-observed-seedlings", paste0(site_name, "_kernel-", disp_mod, "-", err_mod, "-", fecund_mod, ".png")), width=6, height=5)
 
 
 
@@ -308,3 +336,13 @@ fecund_mod_plot_data = data.frame(treesize_m = seq(min(overstory_treesize_vector
 fecund_mod_plot_data = fecund_mod_plot_data |> 
       mutate(linear = fecund_fun_multiplier(treesize_m, b = 3.56), exponential = fecund_fun_multiplier_exponent(treesize_m, b = 1.006, zeta = 1.38)) |>
       pivot_longer(cols = linear:exponential, values_to = "nseeds", names_to = "model")
+
+ggplot(data = fecund_mod_plot_data, aes(x = treesize_m, y = nseeds, color=model, fill=model)) +
+  #geom_ribbon(aes(ymin = lwr, ymax = upr), alpha=0.3, color=NA) +
+  geom_line(linewidth=1) +
+  theme_bw(20) +
+  scale_color_viridis_d(begin=0.3,end=0.7, name="Fecundity model") +
+  scale_fill_viridis_d(begin=0.3,end=0.7, name="Fecundity") +
+  labs(x="Tree height (m)", y = "Fecundity") #+
+#  coord_cartesian(ylim = c(0, 0.0002),
+#                  xlim = c(0, 200))
