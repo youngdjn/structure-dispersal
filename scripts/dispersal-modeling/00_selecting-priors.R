@@ -1,3 +1,5 @@
+# This is exploratory code used for selecting Stan priors
+
 scalar_fun = function(ht_diff, b1) {
   
   scalar = exp(b1 * ht_diff)

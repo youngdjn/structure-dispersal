@@ -3,29 +3,22 @@ library(here)
 library(sf)
 library(elevatr)
 
-
-## Functions for computing the desired size metric from the drone-derived tree height
-source(here("scripts/dispersal-modeling/dispersal-kernel-modeling/tree-size-functions.R"))
-
-
-prep_data = function(dataset_name,               # site-species-sizemetric-version (version is for keeping track of other things)
+prep_data = function(dataset_name,               # site-species-version (version is for keeping track of other things)
                      overstory_tree_filepath,    # relative to `datadir`
                      seedling_plot_filepath,     # relative to `datadir`
                      seedling_plot_crs,
                      target_crs,                 # target CRS (to project the raw data sources to)
-                     seedling_plot_area,         # area of the plot in sq m
+                     seedling_plot_area         # area of the plot in sq m
                      #TODO: specify which species
-                     size_function_name) {      # the name of the function for obtaining the desired tree size metric from drone-derived tree height (metric defined in tree-size-functions.R)
+                    ) {
   
-  ### Load the site data as specified
+  ### Load the overstory tree and seedling data for the specified site
   overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) %>% st_transform(target_crs)
   seedling_plots = st_read(file.path(data_dir, seedling_plot_filepath)) |> st_transform(target_crs)
   
-  size_function = get(size_function_name) # function for computing size from height defined in tree-size-functions.R
-  
   # # Extract DEM data (elevs) at tree and plot points
-  # overstory_trees = get_elev_point(overstory_trees)
-  # seedling_plots = get_elev_point(seedling_plots)
+  overstory_trees = get_elev_point(overstory_trees)
+  seedling_plots = get_elev_point(seedling_plots)
 
   overstory_trees$elevation = runif(nrow(overstory_trees), 0, 100)
   seedling_plots$elevation = runif(nrow(seedling_plots), 0, 100)
@@ -35,9 +28,10 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   overstory_trees$x = tree_coords[,1]
   overstory_trees$y = tree_coords[,2]
   
+  # Only keep trees > 10 m tall
   overstory_trees = overstory_trees %>%
     filter(Z > 10) %>%
-    mutate(size = size_function(Z))
+    mutate(size = Z) # "size" is just the height
   
   overstory_trees = overstory_trees %>%
     select(id = treeID, x, y, size, elevation, Z) |>
@@ -70,9 +64,9 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   
   # Get seedling count
   seedling_counts <- seedling_plots$observed_count
+
   
-  
-  # Round fractions up or down randomly (with p = fraction)
+  # Round seedling count fractions up or down randomly (with p = fraction)
   round_frac <- function(x) {
     ifelse(runif(length(x)) < (x %% 1), ceiling(x), floor(x))
   }
@@ -90,10 +84,11 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   
   r <- sqrt(dist_sq)
   
+  # Any distances > 300  get set to NA
   r_cutoff = ifelse(r > 300, 0, r)
   r_cutoff = ifelse(r_cutoff == 0, NA, r)
   
-  ## Add one dummy tree at 300 m distance, so there are no plots with zero trees
+  ## Add one dummy tree at 300 m distance to each plot, so there are no plots with zero trees
   r_cutoff = cbind(r_cutoff, rep(300, nrow(r_cutoff)))  
   
   ## Prepare the objects needed to pass a "ragged array" of pairwise distances to stan
@@ -102,15 +97,15 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   r_cutoff_vec = r_cutoff_vecfull[!is.na(r_cutoff_vecfull)] # 1-D vector of all the non-NA values
   pos = cumsum(c(1, n_nonNA[-length(n_nonNA)])) # index of the first non-NA value (tree distance) for each plot
   
-  ### Calc height distance matrix
-  ht_diff = -outer(seedling_plots$elevation, overstory_trees$elevation_top, "-")
+  ### Calc elevation diffrence (treetop to plot) matrix
+  elev_diff = -outer(seedling_plots$elevation, overstory_trees$elevation_top, "-")
   
   ## Add one dummy tree at 300 m distance with 0 height diff, so there are no plots with zero trees
-  ht_diff = cbind(ht_diff, rep(0, nrow(ht_diff)))  
+  elev_diff = cbind(elev_diff, rep(0, nrow(elev_diff)))  
   
   ## Prepare it as well to pass as a ragged array, but dropping the same trees as were dropped from the dist vector
-  htdiff_cutoff_vecfull = as.vector(t(ht_diff))
-  htdiff_cutoff_vec = htdiff_cutoff_vecfull[!is.na(r_cutoff_vecfull)]
+  elevdiff_cutoff_vecfull = as.vector(t(elev_diff))
+  elevdiff_cutoff_vec = elevdiff_cutoff_vecfull[!is.na(r_cutoff_vecfull)]
 
   ### Get the overstory tree sizes in the same format (one vector of sizes, indexed using the `n_nonNA` and `pos` vectors)
   ### Note: this will replicate tree sizes when they occur in multiple plots; previously with the square dist mat approach they were not replicated because all trees (all the same trees) were used for every plot. This new approach requires 15x the number of values to store the tree sizes. Not sure of its effect on stan memory and speed.
@@ -124,12 +119,12 @@ prep_data = function(dataset_name,               # site-species-sizemetric-versi
   overstory_treesize_vec = overstory_tree_size[indexes_vec]
   
   ### Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
   dir.create(prepped_data_dir, recursive=TRUE)
   
   write_file(as.character(seedling_plot_area),file.path(prepped_data_dir, "plot-area.txt"))
   write_lines(r_cutoff_vec, file.path(prepped_data_dir, "dist-vector.txt"))
-  write_lines(htdiff_cutoff_vec, file.path(prepped_data_dir, "htdiff-vector.txt"))
+  write_lines(elevdiff_cutoff_vec, file.path(prepped_data_dir, "htdiff-vector.txt"))
   write_lines(overstory_treesize_vec, file.path(prepped_data_dir, "overstory-treesize-vector.txt"))
   write_lines(seedling_counts, file.path(prepped_data_dir, "seedling-counts.txt"))
   write_lines(n_nonNA, file.path(prepped_data_dir, "n-overstory-trees.txt"))
