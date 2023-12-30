@@ -19,7 +19,7 @@ seedling_plot_filepath = paste0("regen-plots-standardized/", site, ".gpkg")
 boundary_filepath = paste0("boundaries/", site, ".gpkg")
 ortho_filepath = paste0("orthos-crop-agg/", site, ".tif")
 
-pred_kernel = paste0("regen-prediction-maps/", site, "_kernel_qexp-median_htdiff-0.tif")
+pred_kernel = paste0("regen-prediction-maps/", site, "_kernel_qexp-large.tif")
 pred_gaus = paste0("regen-prediction-maps/", site, "_gaus-fixed.tif")
 pred_nearest = paste0("regen-prediction-maps/", site, "_min-dist.tif")
 
@@ -46,16 +46,17 @@ make_disp_map = function(model_type) {
   disp_rast = disagg(disp_rast, fact = 2, method = "bilinear")
   
   # get a mask to put behind the trees to focus on high-severity area
-  treed_area = trees |> st_transform(3310) |> st_buffer(40) |> st_union() |> st_buffer(-20)
+  treed_area = trees |> st_transform(3310) |> st_buffer(20) |> st_union() |> st_buffer(-10)
   
   # cap the dispersal color scale to the 50th percentile
-  cap = stats::quantile(values(disp_rast), .6, na.rm = TRUE)
+  cap = stats::quantile(values(disp_rast), .7, na.rm = TRUE)
+  cap = 0.50
   disp_rast[disp_rast > cap] = cap
   disp_rast = mask(disp_rast, boundary)
   
   p = ggplot() +
     geom_spatraster(data = disp_rast) +
-    scale_fill_viridis_c(na.value=NA, guide = FALSE) +
+    scale_fill_viridis_c(na.value=NA) +
     new_scale_fill() +
     geom_sf(data = treed_area, fill = "sienna") +
     geom_sf(data = trees, aes(fill = Z), color = "black", size = 2, pch = 21) +
@@ -66,7 +67,7 @@ make_disp_map = function(model_type) {
     theme_void()
   print(p)
   
-  map_out_filepath = paste0("figures/dispersal-maps/", site, "_", model_type, "_qexp-median.png")
+  map_out_filepath = paste0("figures/dispersal-maps/", site, "_", model_type, "_qexp-large_scale.png")
 
   png(file.path(data_dir, map_out_filepath), width = 3000, height = 2000, res = 300, bg = "transparent")
   print(p)

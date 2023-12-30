@@ -221,7 +221,7 @@ ht_diffs_by_plot =  apply(htdist,1,FUN=c, simplify=FALSE)
 plan(multisession)
 
 # ht_diffs_by_plot = 0
-# overstory_tree_size = rep(median(overstory_tree_size), length(overstory_tree_size))
+overstory_tree_size = rep(quantile(overstory_tree_size, 0.25), length(overstory_tree_size))
 plot_seedl_preds = future_map2_dfr(tree_dists_by_plot, ht_diffs_by_plot, predict_seedl_plot, samples = samples_median, tree_sizes = overstory_tree_size)
 row.names(plot_seedl_preds) = NULL
 
@@ -231,7 +231,7 @@ values(grid) = pts$fit
 
 grid_mask = mask(grid, boundary)
 plot(grid)
-writeRaster(grid_mask,datadir(paste0("/regen-prediction-maps/", site_name, "_kernel_qexp-median_htdiff-0.tif")), overwrite=TRUE)
+writeRaster(grid_mask,datadir(paste0("/regen-prediction-maps/", site_name, "_kernel_qexp-large.tif")), overwrite=TRUE)
 
 
 ##### For distance to nearest tree
