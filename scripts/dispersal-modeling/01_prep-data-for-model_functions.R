@@ -124,7 +124,7 @@ prep_data = function(dataset_name,               # site-species-version (version
   
   write_file(as.character(seedling_plot_area),file.path(prepped_data_dir, "plot-area.txt"))
   write_lines(r_cutoff_vec, file.path(prepped_data_dir, "dist-vector.txt"))
-  write_lines(elevdiff_cutoff_vec, file.path(prepped_data_dir, "htdiff-vector.txt"))
+  write_lines(elevdiff_cutoff_vec, file.path(prepped_data_dir, "elevdiff-vector.txt"))
   write_lines(overstory_treesize_vec, file.path(prepped_data_dir, "overstory-treesize-vector.txt"))
   write_lines(seedling_counts, file.path(prepped_data_dir, "seedling-counts.txt"))
   write_lines(n_nonNA, file.path(prepped_data_dir, "n-overstory-trees.txt"))
