@@ -18,10 +18,10 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
 
   ## Load priors and arrange into list. Load prior values from the code repo. ##
   
-  disp_priors <- read_csv("scripts/dispersal-modeling/dispersal-kernel-modeling/priors/disp_priors.csv") %>%
+  disp_priors <- read_csv("scripts/dispersal-modeling/priors/disp_priors.csv") %>%
     filter(model == disp_mod) %>%
     select(-model)
-  repr_priors <- read_csv("scripts/dispersal-modeling/dispersal-kernel-modeling/priors/repr_priors.csv") %>%
+  repr_priors <- read_csv("scripts/dispersal-modeling/priors/repr_priors.csv") %>%
     filter(stage == "seedling") %>%
     select(-stage)
   priors <- bind_rows(disp_priors, repr_priors)
@@ -33,13 +33,13 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
                           priors$param)
   
 
-  ## Load prepped dataset (corresponding data files in datadir/prepped-for-stan_ragged/{dataset_name}) ##
+  ## Load prepped dataset (corresponding data files in datadir/prepped-for-stan/{dataset_name}) ##
   
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
   
   seedling_plot_area = read_file(file.path(prepped_data_dir, "plot-area.txt")) %>% as.numeric
   dist_vector = read_lines(file.path(prepped_data_dir, "dist-vector.txt")) %>% as.numeric |> as.vector()
-  htdiff_vector = read_lines(file.path(prepped_data_dir, "htdiff-vector.txt"))%>% as.numeric |> as.vector()
+  elevdiff_vector = read_lines(file.path(prepped_data_dir, "elevdiff-vector.txt"))%>% as.numeric |> as.vector()
   overstory_treesize_vector = read_lines(file.path(prepped_data_dir, "overstory-treesize-vector.txt")) %>% as.numeric |> as.vector()
   seedling_counts = read_lines(file.path(prepped_data_dir, "seedling-counts.txt")) %>% as.numeric |> as.vector()
   n_overstory_trees = read_lines(file.path(prepped_data_dir, "n-overstory-trees.txt")) |> as.numeric() |> as.vector()
@@ -53,7 +53,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
                    overstory_tree_size = overstory_treesize_vector,
                    seedling_counts,
                    dist_vector,
-                   htdiff_vector,
+                   elevdiff_vector,
                    obs = length(dist_vector),
                    pos)    
 
@@ -64,14 +64,14 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
   
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
-  model_file <- paste0("scripts/dispersal-modeling/dispersal-kernel-modeling/stan-models/stan-models-with-loglik-and-heightdiff/disp_", disp_mod, "_", err_mod, ".stan")
+  model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik-and-elevdiff/disp_", disp_mod, "_", err_mod, ".stan")
   
   res <- stan(model_file, data = data_list, chains = n_chains, 
               warmup = n_warmup, iter = n_iter, cores = n_cores)
   
   model_dir = file.path(data_dir, "stan-models/")
   if(!file.exists(model_dir)) dir.create(model_dir)
-  model_filename = paste0(model_dir, "stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds")
+  model_filename = paste0(model_dir, "stanmod_", dataset_name,"_",disp_mod, "_", err_mod, ".rds")
   
   saveRDS(res, model_filename)
   
