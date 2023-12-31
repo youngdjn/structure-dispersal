@@ -3,10 +3,10 @@
 library(tidyverse)
 library(here)
 library(mgcv)
-library(terra)
 library(rstan)
+library(terra)
 
-data_dir = readLines(here("data_dir.txt"), n=1)
+data_dir = readLines(here("data_dir.txt"), n = 1)
 
 
 # The main functions used by this script. For parameter definitions, see this file.
@@ -14,22 +14,27 @@ source(here("scripts/dispersal-modeling/05_examine-fitted-kernel_functions.R"))
 
 
 ### Compute summarized (median and credible interval) dispersal kernels for the fitted models ###
-# These functions return a list of three data frames: 1) one called "kernel" which is the fitted dispersal kernel value at a range of distances
-# 2) another called "shadow" which is the seed shadow from a tree of an average size for the site
-# (combines kernel and fecundity), and 3) once called "model" that has the Stan samples
+# These functions return a list of three data frames: 1) one called "kernel" which is the fitted
+# dispersal kernel value at a range of distances, 2) another called "shadow" which is the seed
+# shadow from a tree of an average size for the site (combines kernel and fecundity), and 3) once
+# called "model" that has the Stan samples
 
 site_name = "valley"
 species = "allsp"
-plot_size_ha = 0.0201  # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
+plot_size_ha = 0.0201 # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 # This loads the corresponding Stan model object
-fitted_2Dt = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-01"),
-                                      disp_mod = "2Dt",
-                                      err_mod = "pois")
+fitted_2Dt = get_fitted_kernel(
+  dataset_name = paste0(site_name, "-", species),
+  disp_mod = "2Dt",
+  err_mod = "pois"
+)
 
-fitted_exppow = get_fitted_kernel(dataset_name = paste0(site_name, "-", species, "-01"),
-                                          disp_mod = "2Dt",
-                                          err_mod = "exppow")
+fitted_exppow = get_fitted_kernel(
+  dataset_name = paste0(site_name, "-", species),
+  disp_mod = "2Dt",
+  err_mod = "exppow"
+)
 loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
 
 
@@ -37,49 +42,62 @@ loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
 kern_summary_comb = bind_rows(fitted_2Dt$kernel, fitted_exppow$kernel)
 
 ## Plot them together
-ggplot(data = kern_summary_comb, aes(x = r, y = fit, color=disp_mod, fill=disp_mod)) +
-  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha=0.3, color=NA) +
-  geom_line(linewidth=1) +
+ggplot(data = kern_summary_comb, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
+  geom_line(linewidth = 1) +
   theme_bw(20) +
-  scale_color_viridis_d(begin=0.3,end=0.7, name="Kernel") +
-  scale_fill_viridis_d(begin=0.3,end=0.7, name="Kernel") +
-  labs(x="Distance (m)", y = "Kernel density")
-  # coord_cartesian(ylim = c(0, 0.000005),
-  #                 xlim = c(0, 300))
+  scale_color_viridis_d(begin = 0.3, end = 0.7, name = "Kernel") +
+  scale_fill_viridis_d(begin = 0.3, end = 0.7, name = "Kernel") +
+  labs(x = "Distance (m)", y = "Kernel density")
+# coord_cartesian(ylim = c(0, 0.000005),
+#                 xlim = c(0, 300))
 
-ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels", paste0(site_name, ".png")), width=8, height=5)
+ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels",
+                 paste0(site_name, ".png")), width = 8, height = 5)
 
 
-## Make a fitted-observed plot for a specific fitted model. This requires knowing which trees contributed to that plot (at least their distances and sizes).
-dataset_name = paste0(site_name, "-", species, "-01")
+# Make a fitted-observed plot for a specific fitted model. This requires knowing which trees
+# contributed to that plot (at least their distances and sizes).
+dataset_name = paste0(site_name, "-", species)
 disp_mod = "2Dt"
 err_mod = "pois"
 
 
-load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
-ggsave(file.path(data_dir, "figures/fitted-observed-seedlings", paste0(site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
+load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod,
+                  plot_size_ha = plot_size_ha, ylim = c(NA, NA))
+ggsave(file.path(data_dir, "figures/fitted-observed-seedlings",
+                 paste0(site_name, "_kernel-", disp_mod, ".png")), width = 6, height = 5)
 
 
 # Optionally run this for a different kernel or error model
-disp_mod = "2Dt"
+disp_mod = "exppow"
 err_mod = "pois"
 
-load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
-ggsave(file.path(data_dir, "figures/fitted-observed-seedlings", paste0(site_name, "_kernel-", disp_mod, ".png")), width=6, height=5)
+load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod,
+                  plot_size_ha = plot_size_ha, ylim = c(NA, NA))
+ggsave(file.path(data_dir, "figures/fitted-observed-seedlings",
+                 paste0(site_name, "_kernel-", disp_mod, ".png")), width = 6, height = 5)
 
 
-#### Plot fitted vs obs for a *distance to nearest seedsource* model instead of a kernel model, to show how the kernel model is an improvement
+# --- Plot fitted vs obs for a *distance to nearest seedsource* model instead of a kernel model, to
+# show how the kernel model is an improvement
 
 ## Load the dataset specified
 prepped_data_dir = datadir(paste0("/prepped-for-stan/", dataset_name))
-seedling_counts = read_lines(paste0(prepped_data_dir, "/seedling-counts.txt")) %>% as.numeric
-dist_vector = read.table(paste0(prepped_data_dir,"/dist-vector.txt")) %>% as.matrix # rows are plots, columns are trees
-elevdiff_vector = read.table(paste0(prepped_data_dir,"/elevdiff-vector.txt")) %>% as.matrix # rows are plots, columns are trees
-n_overstory_trees = read.table(paste0(prepped_data_dir,"/n-overstory-trees.txt")) %>% as.matrix # rows are plots, columns are trees
-overstory_treesize_vector = read.table(paste0(prepped_data_dir,"/overstory-treesize-vector.txt")) %>% as.matrix # rows are plots, columns are trees
-pos = read.table(paste0(prepped_data_dir,"/pos.txt")) %>% as.matrix # rows are plots, columns are trees
+seedling_counts = read_lines(paste0(prepped_data_dir, "/seedling-counts.txt")) %>% as.numeric()
+dist_vector = read.table(paste0(prepped_data_dir, "/dist-vector.txt")) |>
+  as.matrix() # rows are plots, columns are trees
+elevdiff_vector = read.table(paste0(prepped_data_dir, "/elevdiff-vector.txt")) |>
+  as.matrix() # rows are plots, columns are trees
+n_overstory_trees = read.table(paste0(prepped_data_dir, "/n-overstory-trees.txt")) |>
+  as.matrix() # rows are plots, columns are trees
+overstory_treesize_vector = read.table(paste0(prepped_data_dir,
+                                              "/overstory-treesize-vector.txt")) |>
+  as.matrix() # rows are plots, columns are trees
+pos = read.table(paste0(prepped_data_dir, "/pos.txt")) |>
+  as.matrix() # rows are plots, columns are trees
 
-splits = rep(1:length(n_overstory_trees), times = n_overstory_trees)
+splits = rep(seq_along(n_overstory_trees), times = n_overstory_trees)
 dists = split(dist_vector, splits)
 elevdiffs = split(elevdiff_vector, splits)
 overstory_treesizes = split(overstory_treesize_vector, splits)
@@ -97,31 +115,33 @@ plot(m)
 d$fit = fitted(m, type = "response")
 
 plot_fitted_observed(d, 1, 1, c(NA, NA))
-ggsave(datadir(paste0("figures/fitted-observed-seedlings/", site_name, "_dist-to-nearest.png")), width=6, height=5)
+ggsave(datadir(paste0("figures/fitted-observed-seedlings/",site_name, "_dist-to-nearest.png")),
+       width = 6, height = 5)
 
-
-## Compare against a *Gaussian smooth* approach that estimtes seed output based on BA and then smooths it
+# -- Compare against a *Gaussian smooth* approach that estimtes seed output based on BA and then
+# smooths it
 # !!!!!! MUST CAREFULLY REVIEW THIS code before considering final
 
-# Estimate tree BA and then seed output. This is based on some cursory allometry and needs to be refined.
+# Estimate tree BA and then seed output. This is based on some cursory allometry and needs to be
+# refined.
 
 a = 1.4721
 b = 0.6848
 dbh = function(h) {
-  (h/a)^(1/b)
+  (h / a)^(1 / b)
 }
 
 ba = function(dbh) {
-  3.14*(dbh/2)^2
+  3.14 * (dbh / 2)^2
 }
 
 overstory_tree_dbh = lapply(overstory_treesizes, dbh)
-overstory_tree_ba =  lapply(overstory_tree_dbh, ba)
+overstory_tree_ba = lapply(overstory_tree_dbh, ba)
 
 # Estiamte fecundity based on BA using the Postcrpt math, assuming an average-sized seed across all
 # CA conifer species, weighted by abundance (0.1226 g)
 fecundity = function(ba) {
-  (0.0107*(  0.1226  ^-0.58)*((113000*( ba ^0.855))^1.08))
+  (0.0107 * (0.1226^-0.58) * ((113000 * (ba^0.855))^1.08))
 }
 
 overstory_tree_fecundity = lapply(overstory_tree_ba, fecundity)
@@ -136,7 +156,7 @@ rel_output = lapply(dists, gaus_kern)
 
 # multiply relative output by fecundity, to get seeds reaching each plot from each tree
 seeds_reaching_plot = list()
-for(i in seq_len(length(rel_output))) {
+for (i in seq_len(length(rel_output))) {
   seeds_reaching_plot[[i]] = rel_output[[i]] * overstory_tree_fecundity[[i]]
 }
 
@@ -151,47 +171,43 @@ plot(seedling_counts ~ gaus_seeds, data = d)
 # Fit a GAM to predict seedling density based on gaussian-smooth seed input
 m = gam(obs ~ 0 + s(gaus_seeds, k = 3), data = d, method = "REML", family = "poisson")
 summary(m)
-#plot(m)
+plot(m)
 d$fit = fitted(m, type = "response")
 
-#plot(fit ~ obs, data = d)
-
 plot_fitted_observed(d, 1, 1, c(NA, NA))
-ggsave(datadir(paste0("fitted-observed-seedlings/", site_name, "_gaus-smooth.png")), width=6, height=5)
+ggsave(datadir(paste0("fitted-observed-seedlings/",
+                      site_name, "_gaus-smooth.png")), width = 6, height = 5)
 
 
 
 
-####### Make maps of predicted density from the fitted kernel
+####### Make raster maps of predicted density from the fitted kernel
 
-# ??? Need to adapt the prep-data script so that it works on rasters as well, treating each grid cell as a "plot"
+# Optional TODO: Adapt the prep-data script so that it works on rasters as well. Currently
+# converting each grid cell to a point ("plot") to work with existing function.
 
-### Make raster of predictions
-
-# For every cell in this landscape, make a "plot", calc mat of distances from trees, predict
-
-library(terra)
+# For every raster cell in this landscape, make a "plot", calc mat of distances from trees, predict
 
 # Get site's geographic analysis bounds
 boundary = st_read(datadir(paste0("/boundaries/", site_name, ".gpkg")))
 
 # Make a raster grid to hold predictions
-grid = rast(resolution = 30, ext = ext(boundary) , crs = "EPSG:3310")
+grid = rast(resolution = 30, ext = ext(boundary), crs = "EPSG:3310")
 values(grid) = 1:ncell(grid)
 
 ## make the cells into points
-pts = as.points(grid) %>% st_as_sf
+pts = as.points(grid) %>% st_as_sf()
 coords = st_coordinates(pts)
-pts$x = coords[,1]
-pts$y = coords[,2]
+pts$x = coords[, 1]
+pts$y = coords[, 2]
 pts_spatial = pts
 st_geometry(pts) = NULL
 
 ## load the tree coords
 trees = st_read(datadir(paste0("/ttops-live/", site_name, ".gpkg"))) |> st_transform(3310)
 tree_coords = st_coordinates(trees)
-trees$x = tree_coords[,1]
-trees$y = tree_coords[,2]
+trees$x = tree_coords[, 1]
+trees$y = tree_coords[, 2]
 tree_data = trees
 st_geometry(tree_data) = NULL
 
@@ -215,47 +231,54 @@ dem = elevatr::get_elev_raster(area, src = "gl1")
 dem = rast(dem)
 
 # Calculate the elev difference between each tree and each point (grid cell)
-treeht = terra::extract(dem, trees)[,2] + trees$Z
-cellht = terra::extract(dem, pts_spatial)[,2]
+treeht = terra::extract(dem, trees)[, 2] + trees$Z
+cellht = terra::extract(dem, pts_spatial)[, 2]
 
 elevdiff <- -outer(cellht, treeht, "-")
 
 ## Load the fitted model and extract the parameter samples
-model_filename = paste0(datadir("/stan-models/"), "stanmod_", dataset_name,"_",disp_mod, "_", err_mod,".rds")
+model_filename = paste0(datadir("/stan-models/"), "stanmod_",
+                        dataset_name, "_", disp_mod, "_", err_mod, ".rds")
 model_fit = readRDS(model_filename)
 samples = rstan::extract(model_fit)
 
 # Summarize across the samples, dropping uncertainty (faster predictions)
-samples_median = map(samples,median)
+samples_median = map(samples, median)
 
-## To run across all "plots" (grid cells), need to make a list of tree_plot_dists with one list item per plot, containing the distances to each tree for that plot
-tree_dists_by_plot = apply(r,1,FUN=c, simplify=FALSE)
-elev_diffs_by_plot =  apply(elevdiff,1,FUN=c, simplify=FALSE)
+# To run across all "plots" (grid cells), need to make a list of tree_plot_dists with one list item
+# per plot, containing the distances to each tree for that plot
+tree_dists_by_plot = apply(r, 1, FUN = c, simplify = FALSE)
+elev_diffs_by_plot = apply(elevdiff, 1, FUN = c, simplify = FALSE)
 
-# Make predictions across all plots, but using just the point estimate of each parameter (no uncertainty)
+# Make predictions across all plots, but using just the point estimate of each parameter (no
+# uncertainty)
 plan(multicore)
 
-# OPTIONALLY: set elev diffs to 0 to see effect of ignoring elev diffs
+## OPTIONALLY: set elev diffs to 0 to see effect of ignoring elev diffs
 # elev_diffs_by_plot = 0
 
 ## OPTIONALLY: set overstory tree size to a small value to see effect of ignoring tree size
 # overstory_tree_size = rep(quantile(overstory_tree_size, 0.25), length(overstory_tree_size))
 
-# Use the fitted model to make the predictions for this new dataset of "plots" representing grid cells
-plot_seedl_preds = future_map2_dfr(tree_dists_by_plot, elev_diffs_by_plot, predict_seedl_plot, samples = samples_median, tree_sizes = overstory_tree_size)
+# Use the fitted model to make the predictions for this new dataset of "plots" representing grid
+# cells
+plot_seedl_preds = future_map2_dfr(tree_dists_by_plot, elev_diffs_by_plot, predict_seedl_plot,
+                                   samples = samples_median, tree_sizes = overstory_tree_size)
 row.names(plot_seedl_preds) = NULL
 
-pts = bind_cols(pts,plot_seedl_preds)
+pts = bind_cols(pts, plot_seedl_preds)
 
 values(grid) = pts$fit
 
 grid_mask = mask(grid, boundary)
 plot(grid)
-writeRaster(grid_mask,datadir(paste0("/figures/regen-prediction-maps/", site_name, "_kernel.tif")), overwrite=TRUE)
+writeRaster(grid_mask,
+            datadir(paste0("/figures/regen-prediction-maps/", site_name, "_kernel.tif")),
+            overwrite = TRUE)
 
 
-##### For mapping the seed rain predictions of alternate methods (e.g. gaussian smooth, distance to nearest),
-# still need to clean this up and port it to the ragged array approach
+# --- For mapping the seed rain predictions of alternate methods (e.g. gaussian smooth, distance to
+# nearest). Still need to clean this up and port it to the ragged array approach
 
 # ##### For distance to nearest tree
 

@@ -15,24 +15,24 @@ site = "valley"
 overstory_tree_filepath = paste0("ttops-live/", site, ".gpkg")
 seedling_plot_filepath = paste0("regen-plots-standardized/", site, ".gpkg")
 boundary_filepath = paste0("boundaries/", site, ".gpkg")
-ortho_filepath = paste0("orthos-crop-agg/", site, ".tif")
+# ortho_filepath = paste0("orthos-crop-agg/", site, ".tif")
 
 pred_kernel = paste0("figures/regen-prediction-maps/", site, "_kernel.tif")
-pred_gaus = paste0("figures/regen-prediction-maps/", site, "_gaus-fixed.tif")
-pred_nearest = paste0("figures/regen-prediction-maps/", site, "_min-dist.tif")
+# pred_gaus = paste0("figures/regen-prediction-maps/", site, "_gaus-fixed.tif")
+# pred_nearest = paste0("figures/regen-prediction-maps/", site, "_min-dist.tif")
 
 map_kernel_out_filepath = paste0("figures/dispersal-maps/", site, "_kernel.png")
-map_nearest_out_filepath = paste0("figures/dispersal-maps/", site, "_nearest.png")
-map_gaus_out_filepath = paste0("figures/disperal-maps/", site, "_gaus.png")
+# map_nearest_out_filepath = paste0("figures/dispersal-maps/", site, "_nearest.png")
+# map_gaus_out_filepath = paste0("figures/disperal-maps/", site, "_gaus.png")
 
 plots = st_read(file.path(data_dir,seedling_plot_filepath))
 trees = st_read(file.path(data_dir, overstory_tree_filepath))
 boundary = st_read(file.path(data_dir, boundary_filepath))
-ortho = rast(file.path(data_dir, ortho_filepath))
+# ortho = rast(file.path(data_dir, ortho_filepath))
 kernel = rast(file.path(data_dir, pred_kernel))
-gaus = rast(file.path(data_dir, pred_gaus))
-nearest = rast(file.path(data_dir, pred_nearest))
-nearest = -nearest
+# gaus = rast(file.path(data_dir, pred_gaus))
+# nearest = rast(file.path(data_dir, pred_nearest))
+# nearest = -nearest
 
 
 make_disp_map = function(model_type) {
@@ -65,14 +65,16 @@ make_disp_map = function(model_type) {
     theme_void()
   print(p)
   
-  map_out_filepath = paste0("figures/dispersal-maps/", site, "_", model_type, "_qexp-large_scale.png")
+  map_out_filepath = paste0("figures/dispersal-maps/",
+                            site, "_", model_type, ".png")
 
-  png(file.path(data_dir, map_out_filepath), width = 3000, height = 2000, res = 300, bg = "transparent")
+  png(file.path(data_dir, map_out_filepath),
+      width = 3000, height = 2000, res = 300, bg = "transparent")
   print(p)
   dev.off()
 }
 
 
 make_disp_map(model_type = "kernel")
-make_disp_map(model_type = "gaus")
-make_disp_map(model_type = "nearest")
+# make_disp_map(model_type = "gaus")
+# make_disp_map(model_type = "nearest")
