@@ -65,7 +65,7 @@ select_kernel_function = function(disp_mod) {
 get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
   
   ## Get tree size from the modeled dataset
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
   overstory_tree_size = read_lines(paste0(prepped_data_dir, "/overstory-treesize-vector.txt")) %>% as.numeric
   
   ## Load the fitted model and get the parameter samples
@@ -121,7 +121,7 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod) {
 #### Predict seedling density at each plot ####
 
 ### Function to predict seedl dens for a plot by summing the contributions of all trees
-predict_seedl_plot = function(tree_dists, htdiffs, tree_sizes, samples) {
+predict_seedl_plot = function(tree_dists, elevdiffs, tree_sizes, samples) {
 
   # Pick the kernel function based on the specified disp_mod
   kernel_function = select_kernel_function(disp_mod)
@@ -136,10 +136,12 @@ predict_seedl_plot = function(tree_dists, htdiffs, tree_sizes, samples) {
   # But if it's a vector, that means we supplied only a single "sample" (a point estimate of model fit), so don't transpose or it will turn the vector to a matrix
   
   ## Get the fitted fecundity for each tree
-  fecundity_out = q_fun(samples$mu_beta, samples$zeta, tree_sizes) # matrix with one row per tree, one column per model sample
+  # ! Andrew, note you'll need to add the zeta parameter samples to the q_fun call once you have fitted stan
+  # models that include it
+  fecundity_out = q_fun(mu_beta = samples$mu_beta, zeta = 1, overstory_tree_size = tree_sizes) # matrix with one row per tree, one column per model sample
   
   ## Get the elevation difference scalar
-  elev_diff_scalar = exp(samples$b1_ht * htdiffs)
+  elev_diff_scalar = exp(samples$b1_ht * elevdiffs)
   
   ## Summarize the seed rain reaching the plot summed across all trees' contributions
   seeds_out_bytree = kern_out * fecundity_out * elev_diff_scalar # one row for each tree, one column for each model sample
@@ -199,12 +201,12 @@ plot_fitted_observed = function(fitted_observed_plot_seedl, plot_size_ha, fitted
 }
 
 
-load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim, htdiffs = 0) {
+load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim, elevdiffs = 0) {
 
   ### Run just the steps needed to make a fitted-observed plot (and fit metrics) for a specific fitted model
   
   ## Load the dataset specified
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
   overstory_treesize_vector = read_lines(file.path(prepped_data_dir, "overstory-treesize-vector.txt")) %>% as.numeric
   seedling_counts = read_lines(file.path(prepped_data_dir, "seedling-counts.txt")) %>% as.numeric
   dist_vector = read_lines(file.path(prepped_data_dir, "dist-vector.txt")) %>% as.numeric
@@ -234,7 +236,7 @@ load_fit_and_plot = function(dataset_name, disp_mod, err_mod, plot_size_ha, ylim
 
   # Make predictions across all plots, but using just the point estimate of each parameter (no uncertainty)
   #plan(multisession(workers=8))
-  plot_seedl_preds = future_map2(tree_dists_by_plot, overstory_treesize_by_plot, predict_seedl_plot, samples = samples_median, htdiffs = 0) |> list_rbind()
+  plot_seedl_preds = future_map2(tree_dists_by_plot, overstory_treesize_by_plot, predict_seedl_plot, samples = samples_median, elevdiffs = 0) |> list_rbind()
   row.names(plot_seedl_preds) = NULL
   
   ## Combine with observed seedl
