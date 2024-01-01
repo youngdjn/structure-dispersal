@@ -175,7 +175,7 @@ plot(m)
 d$fit = fitted(m, type = "response")
 
 plot_fitted_observed(d, 1, 1, c(NA, NA))
-ggsave(datadir(paste0("fitted-observed-seedlings/",
+ggsave(datadir(paste0("figures/fitted-observed-seedlings/",
                       site_name, "_gaus-smooth.png")), width = 6, height = 5)
 
 
