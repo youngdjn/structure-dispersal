@@ -1,4 +1,4 @@
-# Put the Crater and other regen datasets in standardized format
+# Put the Crater and other regen datasets in standardized format, to be ingested by `01_prep-data-for-model.R`
 
 library(tidyverse)
 library(here)
