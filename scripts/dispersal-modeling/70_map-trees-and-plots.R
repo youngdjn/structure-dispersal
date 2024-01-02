@@ -1,4 +1,6 @@
-# Make maps of each site
+# Make maps of observed data (overstory trees and regen plots) at each site
+# NOTE: The file paths here are broken since we split out the drone data from the other field data;
+# will need to be updated to run again
 
 library(tidyverse)
 library(here)
@@ -60,4 +62,3 @@ p = p +
 png(file.path(data_dir, map_trees_out_filepath), width = 3000, height = 2000, res = 300, bg = "transparent")
 p
 dev.off()
-
