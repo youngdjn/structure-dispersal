@@ -72,7 +72,7 @@ alignPhotos: # (Metashape: matchPhotos, alignCameras, (optionally) exportCameras
     export: True # Export the camera locations
 
 filterPointsUSGS:
-    enabled: False
+    enabled: True
     rec_thresh_percent: 20
     rec_thresh_absolute: 15
     proj_thresh_percent: 30
