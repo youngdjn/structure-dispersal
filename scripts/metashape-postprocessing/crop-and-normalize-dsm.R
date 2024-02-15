@@ -14,20 +14,20 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 
 source(here("scripts/convenience_functions.R"))
 
-site = "valley"
+site = "lassic"
 
 
 # load DTM
-dtm = rast(datadir(paste0("/cross-site/dtms/photogrammetry/", site, ".tif")))
+dtm = rast(datadir(paste0("/cross-site/dtms/photogrammetry/", site, ".tif"))) # or subfolder "usgs"
 
 ## get DSM layer from metashape output
 dsm_file = datadir(paste0("/cross-site/dsms/", site, ".tif"))
 
 # file to write
-filename = datadir(paste0("/cross-site/chms/",site,".tif"))
+filename = datadir(paste0("/cross-site/chms/", site, ".tif"))
 
 # get site boundary
-boundary =st_read(datadir(paste0("/cross-site/boundaries/", site, ".gpkg")))
+boundary = st_read(datadir(paste0("/cross-site/boundaries/", site, ".gpkg")))
 
 # # skip if file aleady exists
 # if(file.exists(filename)) {
@@ -61,7 +61,7 @@ chm = dsm_upscale - dtm_interp
 
 
 # create dir if doesn't exist, then write
-writeRaster(chm,filename, overwrite = TRUE) # naming it metashape because it's just based on metashape dsm (and usgs dtm) -- to distinguish from one generated from point cloud
+writeRaster(chm,filename, overwrite = TRUE)
 
 gc()
 

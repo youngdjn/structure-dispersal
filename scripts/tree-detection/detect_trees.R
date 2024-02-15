@@ -12,7 +12,7 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 #source(here("scripts/convenience_functions.R"))
 
 sites = c("crater", "valley", "chips", "delta")
-
+sites = c("lassic")
 
 #### START ####
 
@@ -39,8 +39,8 @@ for(site in sites) {
   
   
   # crop and mask it
-  chm_crop = crop(chm,focal_area %>% st_transform(crs(chm)) %>% vect)
-  chm_mask = mask(chm_crop,focal_area %>% st_transform(crs(chm)) %>% vect)
+  chm_crop = crop(chm,focal_area %>% st_transform(terra::crs(chm)))
+  chm_mask = mask(chm_crop,focal_area %>% st_transform(terra::crs(chm)))
   chm = chm_mask
   
   cat("Fix extraneous vals")

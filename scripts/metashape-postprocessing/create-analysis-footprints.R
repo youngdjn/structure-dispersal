@@ -9,11 +9,11 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 internal_buffer_from_photos = 30 # in m. to make sure the edges of the focal area still have sufficient overlap
 
 
-site = "crater"
+site = "lassic"
 
 
 
-photo_points = st_read(file.path(data_dir, paste0("cross-site/drone-photo-points/120m/", site, ".gpkg"))) |> st_transform(3310)
+photo_points = st_read(file.path(data_dir, paste0("cross-site/drone-photo-points/120m/", site, ".gpkg"))) |> st_zm() |> st_transform(3310)
 
 if(site != "crater") {
   plot_points = read_csv(file.path(data_dir, paste0("cross-site/regen-plots/plots.csv")))

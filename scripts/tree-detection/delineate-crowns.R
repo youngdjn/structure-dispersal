@@ -11,7 +11,7 @@ library(smoothr)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
 
-sites = c("crater", "delta", "chips", "valley")
+sites = c("crater", "delta", "chips", "valley", "lassic")
 
 for(site in sites) {
   
