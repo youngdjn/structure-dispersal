@@ -9,11 +9,11 @@ source("/ofo-share/utils/tree-map-comparison/lib/match-trees.R")
 
 
 # Load field trees
-trees_field = st_read("/ofo-share/str-disp_drone-data-partial/cross-site/field-reference-trees/stems_v3_aligned.gpkg") |>
+trees_field = st_read("/ofo-share/str-disp_drone-data-partial/cross-site/field-reference-trees/stems_v4.gpkg") |>
   st_transform(3310)
 
 # Load field perims
-perims_field = st_read("/ofo-share/str-disp_drone-data-partial/cross-site/field-reference-trees/plot_bounds_v3_manuallyCorrected.gpkg") |>
+perims_field = st_read("/ofo-share/str-disp_drone-data-partial/cross-site/field-reference-trees/plot_bounds_v4.gpkg") |>
   st_transform(3310)
 
 
@@ -24,11 +24,13 @@ trees_field$Height = trees_field$ht_top
 trees_field = trees_field |>
   mutate(species = toupper(species)) |>
   mutate(species = ifelse(str_detect(species, regex("snag", ignore_case = TRUE)), "SNAG", species),
-        pct_current_green = ifelse(str_detect(species, regex("snag", ignore_case = TRUE)), 0, pct_current_green))
+        pct_current_green = ifelse(str_detect(species, regex("snag", ignore_case = TRUE)), 0, pct_current_green)) |>
+  # assume that if percent current green is NA, it's 0
+  mutate(pct_current_green = ifelse(is.na(pct_current_green) | pct_current_green == "NA", 0, pct_current_green))
 
 # Make a data frame of all the stem maps we want, so we can loop through it
-stemmaps = data.frame(stem_map_name = c("Chips_1", "Chips_1_ABCO", "Chips_2", "Delta_1", "Delta_2", "Delta_3", "Valley_1"),
-                      fire_name =     c("chips",   "chips",        "chips",   "delta",   "delta",    "delta", "valley"))
+stemmaps = data.frame(stem_map_name = c("Chips_1", "Chips_1_ABCO", "Chips_2", "Delta_1", "Delta_2", "Delta_3", "Valley_1", "Lassic_1", "Lassic_2"),
+                      fire_name =     c("chips",   "chips",        "chips",   "delta",   "delta",    "delta", "valley",    "lassic",    "lassic"))
 
 crowns_drone_w_field_data = data.frame()
 
@@ -108,7 +110,7 @@ for(i in 1:nrow(stemmaps)) {
 }
 
 
-st_write(crowns_drone_w_field_data, "/ofo-share/scratch-derek/crowns_drone_w_field_data.gpkg", delete_dsn = TRUE)
+st_write(crowns_drone_w_field_data, paste0("/ofo-share/str-disp_drone-data-partial/cross-site/crowns-w-field-labels/crowns_drone_w_field_data.gpkg"), delete_dsn = TRUE)
 
 
 
