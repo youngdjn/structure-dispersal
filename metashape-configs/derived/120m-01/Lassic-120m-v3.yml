@@ -27,7 +27,7 @@ project_crs: "EPSG::3310" # 26910 is UTM 10N
 
 # Enable metashape "fine-level task subdivision" which reduces memory use by breaking processing into independent chunks that are run in series.
 # Assuming there's enough memory, it seems to run 10-20% faster by disabling subdividing. But large projects can run out memory and fail if subdivide is not enabled.
-subdivide_task: False
+subdivide_task: True
 
 # Should CUDA GPU driver be used? Alternative is OpenCL. Metashape uses CUDA by default but we have observed it can cause crashes on HPC infrastructure.
 use_cuda: True
