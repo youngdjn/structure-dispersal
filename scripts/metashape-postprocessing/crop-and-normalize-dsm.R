@@ -12,28 +12,21 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 
 #### Convenience functions and main functions ####
 
-source(here("scripts/convenience_functions.R"))
-
 site = "lassic"
 
 
 # load DTM
-dtm = rast(datadir(paste0("/cross-site/dtms/photogrammetry/", site, ".tif"))) # or subfolder "usgs"
+dtm = rast(file.path(data_dir, "cross-site", "dtms", "photogrammetry", paste0(site, ".tif")))
 
 ## get DSM layer from metashape output
-dsm_file = datadir(paste0("/cross-site/dsms/", site, ".tif"))
+dsm_file = file.path(data_dir, "cross-site", "dsms", paste0(site, ".tif"))
+
 
 # file to write
-filename = datadir(paste0("/cross-site/chms/", site, ".tif"))
+filename = file.path(data_dir, "cross-site", "chms", paste0(site, ".tif"))
 
 # get site boundary
-boundary = st_read(datadir(paste0("/cross-site/boundaries/", site, ".gpkg")))
-
-# # skip if file aleady exists
-# if(file.exists(filename)) {
-#   cat("Already exists:",filename,". Skipping.\n")
-#   return(FALSE)
-# }
+boundary = st_read(file.path(data_dir, "cross-site", "boundaries", datadir(paste0(site, ".gpkg"))))
 
 # Crop to study area boundary
 dsm = rast(dsm_file)
@@ -44,24 +37,22 @@ dtm = crop(dtm, boundary |> st_transform(crs(dtm)))
 dtm = mask(dtm, boundary |> st_transform(crs(dtm)))
 
 
+## upscale to 0.12 m
+dsm_upscale = project(dsm, y = "EPSG:3310", res = 0.12, method = "bilinear")
 
-# upscale to 0.12 m
-dsm_upscale = project(dsm, y = "EPSG:3310", res=0.12, method="bilinear")
 
-
-# interpolate the the DTM to the res, extent, etc of the DSM
-dtm_interp = project(dtm,dsm_upscale, method="bilinear")
+## interpolate the the DTM to the res, extent, etc of the DSM
+dtm_interp = project(dtm, dsm_upscale, method = "bilinear")
 
 
 #### Calculate canopy height model ####
 #### and save to tif
 
-# calculate canopy height model
+## calculate canopy height model
 chm = dsm_upscale - dtm_interp
 
 
-# create dir if doesn't exist, then write
-writeRaster(chm,filename, overwrite = TRUE)
+## create dir if doesn't exist, then write
+writeRaster(chm, filename, overwrite = TRUE)
 
 gc()
-
