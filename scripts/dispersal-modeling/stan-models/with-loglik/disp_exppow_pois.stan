@@ -39,7 +39,7 @@ data {
 
     // Hyperparameters for parameter priors
     real p_alpha[2];
-    real p_inv_k_real[2];
+    real p_inv_k[2];
     real p_mu_beta[2];
 }
 
@@ -68,9 +68,11 @@ transformed parameters {
         
           //TODO: can make this easier to read by computing each term first?
           
-          mu[i] = sum(k / (2*pi() * square(a) * tgamma(2/k)) * exp(- pow(segment(dist_vector, pos[i], n_overstory_trees[i]) / a, k))) .*
+          mu[i] = sum(k / (2*pi() * square(a) * tgamma(2/k)) * exp(- pow(segment(dist_vector, pos[i], n_overstory_trees[i]) / a, k)) .*
             q_fun(b, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) ) ) * // seeds per tree based on size
             seedling_plot_area; // area in which seeds land 
+
+
 
        	  log_lik[i] = poisson_lpmf(seedling_counts[i] | mu[i]);
             
@@ -85,7 +87,7 @@ transformed parameters {
 model {
 
     alpha ~ normal(p_alpha[1], p_alpha[2]);
-	  inv_k_real ~ normal(p_inv_k_real[1], p_inv_k_real[2]);
+	  inv_k ~ normal(p_inv_k[1], p_inv_k[2]);
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
 
     seedling_counts ~ poisson(mu);
