@@ -70,7 +70,7 @@ transformed parameters {
           //TODO: can make this easier to read by computing each term first?
           
           mu[i] = sum(k / (pi() * a) * pow(1 + square(segment(dist_vector, pos[i], n_overstory_trees[i])) / a, -1-k) .*  // dispersal kernel
-sum(k / (pi() * a) * pow(1 + square(segment(dist_vector, pos[i], n_overstory_trees[i])) / a, -1-k) .*  // dispersal kernel
+
             q_fun(b, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) ) ) * // seeds per tree based on size
             seedling_plot_area; // area in which seeds land 
 
