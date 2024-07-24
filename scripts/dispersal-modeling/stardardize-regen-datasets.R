@@ -62,7 +62,8 @@ seedl_agg_pines = seedl |>
 seedl_agg = seedl_agg_ALL |>
   left_join(seedl_agg_sp, by = c("fire", "plot_id")) |>
   left_join(seedl_agg_firs, by = c("fire", "plot_id")) |>
-  left_join(seedl_agg_pines, by = c("fire", "plot_id"))
+  left_join(seedl_agg_pines, by = c("fire", "plot_id")) |>
+  mutate(across(starts_with("count"), ~replace_na(., 0))) # replace NA with 0
 
 ## Delta
 

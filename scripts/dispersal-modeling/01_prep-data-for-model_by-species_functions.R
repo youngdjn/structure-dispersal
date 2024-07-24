@@ -29,7 +29,13 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
   overstory_trees = overstory_trees |>
     filter(!(pred_class_ID %in% c("SNAG", "unknown")))
 
-  if(focal_species != "ALL") {
+  if (focal_species == "PINES") {
+    overstory_trees = overstory_trees |>
+      filter(pred_class_ID %in% c("PIPJ", "PILA"))
+  } else if (focal_species == "FIRS") {
+    overstory_trees = overstory_trees |>
+      filter(pred_class_ID %in% c("ABCO", "PSME"))
+  } else if (focal_species != "ALL") {
     overstory_trees = overstory_trees |>
       filter(pred_class_ID == focal_species)
   }
