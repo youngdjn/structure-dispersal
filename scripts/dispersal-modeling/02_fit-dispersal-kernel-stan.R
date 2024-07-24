@@ -16,7 +16,7 @@ source(here("scripts/dispersal-modeling/02_fit-dispersal-kernel-stan_functions.R
 # Fit a model for a specific site, disp function, error model, and stan parameters. See
 # 02_fit-dispersal-kernel_functions.R for parameter definitions.
 m = fit_stan_model(
-  dataset_name = "valley-allsp", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
   disp_mod = "2Dt", # 2Dt or exppow
   err_mod = "pois", # pois only currently
   n_warmup = 150, # stan warmup iter
@@ -26,7 +26,7 @@ m = fit_stan_model(
 )
 
 m = fit_stan_model(
-  dataset_name = "chips-allsp",
+  dataset_name = "delta-FIRS",
   disp_mod = "2Dt",
   err_mod = "pois",
   n_warmup = 500,
