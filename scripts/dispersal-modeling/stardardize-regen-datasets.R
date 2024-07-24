@@ -1,4 +1,7 @@
-# Put the Crater and other regen datasets in standardized format, to be ingested by `01_prep-data-for-model.R`
+# Put the Crater and other regen datasets in standardized format, to be ingested by
+# `01_prep-data-for-model.R`
+##!!!! Currently, only Delta section is working for species-specific data. The other sections need
+#to be updated to work with the new data structure.
 
 library(tidyverse)
 library(here)
@@ -8,7 +11,7 @@ data_dir = readLines(here("data_dir.txt"), n=1)
 
 # Crater
 
-d = read_csv(file.path(data_dir, "cross-site/regen-plots/crater_foc.csv"))
+d = read_csv(file.path(data_dir, "regen-plots/crater_foc.csv"))
 
 d_sp = st_as_sf(d, coords = c("Easting", "Northing"), crs = 26911)
 
@@ -25,18 +28,45 @@ st_write(d_sp, file.path(data_dir, "cross-site/regen-plots-standardized/crater.g
 
 ### Other datasets: general prep
 
-seedl = read_csv(file.path(data_dir, "cross-site/regen-plots/species.csv"))
+seedl = read_csv(file.path(data_dir, "regen-plots/species.csv")) |>
+  filter(species_coarse != "NA")
 
-seedl_agg = seedl |>
+seedl_agg_ALL = seedl |>
   select(fire, plot_id, species_coarse,
           observed_count = seedl_analyze) |>
   group_by(fire, plot_id) |>
-  summarize(observed_count = sum(observed_count, na.rm = TRUE))
+  summarize(count_ALL = sum(observed_count, na.rm = TRUE))
 
+seedl_agg_sp = seedl |>
+  select(fire, plot_id, species_coarse,
+          observed_count = seedl_analyze) |>
+  group_by(fire, plot_id, species_coarse) |>
+  summarize(count = sum(observed_count, na.rm = TRUE)) |>
+  pivot_wider(id_cols = c(fire, plot_id), names_from = species_coarse, values_from = count, names_prefix = "count_", values_fill = 0)
+
+seedl_agg_firs = seedl |>
+  select(fire, plot_id, species_coarse,
+          observed_count = seedl_analyze) |>
+  filter(species_coarse %in% c("ABCO", "PSME")) |>
+  group_by(fire, plot_id) |>
+  summarize(count_FIRS = sum(observed_count, na.rm = TRUE))
+
+seedl_agg_pines = seedl |>
+  select(fire, plot_id, species_coarse,
+          observed_count = seedl_analyze) |>
+  filter(species_coarse %in% c("PIPJ", "PILA")) |>
+  group_by(fire, plot_id) |>
+  summarize(count_PINES = sum(observed_count, na.rm = TRUE))
+
+
+seedl_agg = seedl_agg_ALL |>
+  left_join(seedl_agg_sp, by = c("fire", "plot_id")) |>
+  left_join(seedl_agg_firs, by = c("fire", "plot_id")) |>
+  left_join(seedl_agg_pines, by = c("fire", "plot_id"))
 
 ## Delta
 
-d = read_csv(file.path(data_dir, "cross-site/regen-plots/plots.csv")) |>
+d = read_csv(file.path(data_dir, "regen-plots/plots.csv")) |>
   filter(toupper(fire) == toupper("delta")) |>
   select(fire, plot_id, lon, lat)
 
@@ -47,7 +77,7 @@ d = inner_join(d, seedl_agg, by = c("fire", "plot_id")) # TODO: figure out why t
 d_sp = st_as_sf(d, coords = c("lon", "lat"), crs = 4326)
 
 # write
-st_write(d_sp, file.path(data_dir, "cross-site/regen-plots-standardized/delta.gpkg"), delete_dsn = TRUE)
+st_write(d_sp, file.path(data_dir, "regen-plots-standardized/delta.gpkg"), delete_dsn = TRUE)
 
 
 

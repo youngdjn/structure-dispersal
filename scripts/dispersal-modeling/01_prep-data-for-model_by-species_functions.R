@@ -2,26 +2,53 @@ library(tidyverse)
 library(here)
 library(sf)
 library(elevatr)
+library(terra)
 
-prep_data = function(dataset_name, # site-species
+prep_data_onespecies = function(site_name, # e.g. "delta"
+                     focal_species, # 4-letter code
                      overstory_tree_filepath, # relative to `datadir`
                      seedling_plot_filepath, # relative to `datadir`
                      seedling_plot_crs,
                      target_crs, # target CRS (to project the raw data sources to)
                      seedling_plot_area # area of the plot in sq m
 ) {
+
+  dataset_name = paste0(site_name, "-", focal_species)
+
   ### Load the overstory tree and seedling data for the specified site
   overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) |>
     st_transform(target_crs)
   seedling_plots = st_read(file.path(data_dir, seedling_plot_filepath)) |>
     st_transform(target_crs)
 
-  # # Extract DEM data (elevs) at tree and plot points
-  overstory_trees = get_elev_point(overstory_trees)
-  seedling_plots = get_elev_point(seedling_plots)
+  # Convert overstory polys to points
+  overstory_trees = st_centroid(overstory_trees)
 
-  overstory_trees$elevation = runif(nrow(overstory_trees), 0, 100)
-  seedling_plots$elevation = runif(nrow(seedling_plots), 0, 100)
+  # Filter overstory to exclude SNAG and include only the focal species
+
+  overstory_trees = overstory_trees |>
+    filter(!(pred_class_ID %in% c("SNAG", "unknown")))
+
+  if(focal_species != "ALL") {
+    overstory_trees = overstory_trees |>
+      filter(pred_class_ID == focal_species)
+  }
+
+
+  # # Extract DEM data (elevs) at tree and plot points
+
+  # Create a combined polygon spanning all the trees and plots
+  bound_trees = overstory_trees |> st_buffer(100) |> st_union()
+  bound_plots = seedling_plots |> st_buffer(100) |> st_union()
+  bound = st_union(bound_trees, bound_plots)
+
+  elev = get_elev_raster(bound |> st_as_sf(), z = 14, prj = 4326, src = "aws")
+
+  overstory_trees$elevation = extract(elev, overstory_trees)
+  seedling_plots$elevation = extract(elev, seedling_plots)
+
+  # overstory_trees$elevation = runif(nrow(overstory_trees), 0, 100)
+  # seedling_plots$elevation = runif(nrow(seedling_plots), 0, 100)
 
   ### Prep overstory tree data: columns ID, x and y location, and size
   tree_coords = st_coordinates(overstory_trees, )
@@ -56,8 +83,11 @@ prep_data = function(dataset_name, # site-species
       filter(BurnClass != "Low")
   }
 
+  # Specify the column name for the observed count based on the focal species
+  count_col = paste0("count_", focal_species)
+
   seedling_plots = seedling_plots %>%
-    dplyr::select(x, y, observed_count, elevation)
+    dplyr::select(x, y, observed_count = one_of(count_col), elevation)
 
   st_geometry(seedling_plots) = NULL
 
@@ -94,7 +124,7 @@ prep_data = function(dataset_name, # site-species
   ## Add one dummy tree at 300 m distance to each plot, so there are no plots with zero trees
   r_cutoff = cbind(r_cutoff, rep(300, nrow(r_cutoff)))
 
-  # -- Prepare the objects needed to pass a "ragged array" of pairwise distances to stan
+  # -- Prepare the objects needed to pass a "ragged matrix" of pairwise distances to stan
   # number of non-NA values (overstory tree distances) per row (i.e. per seedling plot)
   n_nonNA = rowSums(!is.na(r_cutoff))
   r_cutoff_vecfull = as.vector(t(r_cutoff))
@@ -142,4 +172,28 @@ prep_data = function(dataset_name, # site-species
   write_lines(seedling_counts, file.path(prepped_data_dir, "seedling-counts.txt"))
   write_lines(n_nonNA, file.path(prepped_data_dir, "n-overstory-trees.txt"))
   write_lines(pos, file.path(prepped_data_dir, "pos.txt"))
+}
+
+
+# Wrapper function to run the above function for all species
+
+prep_data_allspecies = function(site_name,
+                                 overstory_tree_filepath,
+                                 seedling_plot_filepath,
+                                 seedling_plot_crs,
+                                 target_crs,
+                                 seedling_plot_area) {
+
+  species = c("ALL", "ABCO", "PSME", "PIPJ", "PILA", "PINES", "FIRS")
+  
+  for (sp in species) {
+
+    prep_data_onespecies(site_name,
+              sp,
+              overstory_tree_filepath,
+              seedling_plot_filepath,
+              seedling_plot_crs,
+              target_crs,
+              seedling_plot_area)
+  }
 }

@@ -1,1 +1,1 @@
-/ofo-share/str-disp_drone-data-partial
+/ofo-share/str-disp_data
