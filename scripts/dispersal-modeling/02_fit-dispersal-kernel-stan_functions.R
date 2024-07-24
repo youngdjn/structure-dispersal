@@ -83,8 +83,12 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
 
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
-  model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik-and-elevdiff/disp_",
+  #model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik-and-elevdiff/disp_",
+  #                     disp_mod, "_", err_mod, ".stan")
+  # For now, use the models without elevation difference
+  model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik/disp_",
                        disp_mod, "_", err_mod, ".stan")
+  
 
   res <- stan(model_file,
     data = data_list, chains = n_chains,
