@@ -74,7 +74,7 @@ transformed parameters {
             q_fun(b, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) ) ) * // seeds per tree based on size
             seedling_plot_area; // area in which seeds land 
 
-       	  log_lik[i] = poisson_lpmf(seedling_counts[i] | mu[i]);
+       	  log_lik[i] = poisson_lpmf(seedling_counts[i] | mu[i]); // CHECK if ok to leave here or move back to gen quantities
             
  
           //TODO: where does the area (m) come into this expression besides seedling_plot_area?
