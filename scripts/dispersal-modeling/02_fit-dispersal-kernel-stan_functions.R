@@ -71,7 +71,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
     overstory_tree_size = overstory_treesize_vector,
     seedling_counts,
     dist_vector,
-    elevdiff_vector,
+    #elevdiff_vector, # leave out for models without elevation difference 
     obs = length(dist_vector),
     pos
   )
