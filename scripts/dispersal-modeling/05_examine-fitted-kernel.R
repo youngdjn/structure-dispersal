@@ -7,6 +7,8 @@ library(rstan)
 library(terra)
 
 data_dir = readLines(here("data_dir.txt"), n = 1)
+# for Andrew's local work
+data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
 
 
 # The main functions used by this script. For parameter definitions, see this file.
@@ -19,8 +21,8 @@ source(here("scripts/dispersal-modeling/05_examine-fitted-kernel_functions.R"))
 # shadow from a tree of an average size for the site (combines kernel and fecundity), and 3) once
 # called "model" that has the Stan samples
 
-site_name = "valley"
-species = "allsp"
+site_name = "delta"
+species = "PINES"
 plot_size_ha = 0.0201 # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 # This loads the corresponding Stan model object
