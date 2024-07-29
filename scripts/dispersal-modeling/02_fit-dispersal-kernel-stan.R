@@ -65,4 +65,18 @@ m = fit_stan_model(
   n_cores = 4
 )
 
+#### Fit models with specified dispersal model parameterizion, in addition to dispersal kernel, error model, and species and site #### 
+
+# Model with multiplier and exponent 
+m2 = fit_stan_model_fecund(dataset_name = "delta-PINES",   # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+                           disp_mod = "2Dt",                         # 2Dt or exppow
+                           err_mod = "pois",                         # pois only currently
+                           fecund_mod = "multiplier_exponent",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
+                           n_warmup = 500,                           # stan warmup iter
+                           n_iter = 2500,                             # stan iter, includes warmup
+                           n_chains = 6,                             # stan n chains
+                           n_cores = 6)    
+
+loo(m1) # looic 4527
+loo(m2) 
   
