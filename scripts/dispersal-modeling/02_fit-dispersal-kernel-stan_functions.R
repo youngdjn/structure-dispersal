@@ -186,7 +186,8 @@ fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresp
   
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
-  model_file <- paste0("scripts/dispersal-modeling/dispersal-kernel-modeling/stan-models/stan-models-with-loglik-and-heightdiff/disp_", disp_mod, "_", err_mod, "_", fecund_mod, ".stan")
+
+  model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik/disp_", disp_mod, "_", err_mod, "_", fecund_mod, ".stan")
   
   res <- stan(model_file, data = data_list, chains = n_chains,
               warmup = n_warmup, iter = n_iter, cores = n_cores)
