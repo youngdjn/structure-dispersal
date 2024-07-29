@@ -118,49 +118,71 @@ fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresp
   
   ## Load priors and arrange into list. Load prior values from the code repo. ##
   
-  disp_priors <- read_csv("scripts/dispersal-modeling/dispersal-kernel-modeling/priors/disp_priors.csv") %>%
+  disp_priors <- read_csv("scripts/dispersal-modeling/priors/disp_priors.csv") |>
     filter(model == disp_mod) %>%
     select(-model)
-  repr_priors <- read_csv("scripts/dispersal-modeling/dispersal-kernel-modeling/priors/repr_priors.csv") %>%
+  repr_priors <- read_csv("scripts/dispersal-modeling/priors/repr_priors.csv") |>
     filter(stage == "seedling") %>%
     select(-stage)
   priors <- bind_rows(disp_priors, repr_priors)
   
-  if (err_mod != "nb") 
+  if (err_mod != "nb") {
     priors <- filter(priors, param != "p_ri_theta")
+  }
   
-  priors_list <- setNames(map2(priors$prior_mean, priors$prior_sd, c), 
-                          priors$param)
+  priors_list <- setNames(
+    map2(priors$prior_mean, priors$prior_sd, c),
+    priors$param
+  )
   
   
-  ## Load prepped dataset (corresponding data files in datadir/prepped-for-stan_ragged/{dataset_name}) ##
   
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan_ragged", dataset_name)
+  # -- Load prepped dataset (corresponding data files in datadir/prepped-for-stan/{dataset_name})
   
-  seedling_plot_area = read_file(file.path(prepped_data_dir, "plot-area.txt")) %>% as.numeric
-  dist_vector = read_lines(file.path(prepped_data_dir, "dist-vector.txt")) %>% as.numeric |> as.vector()
-  htdiff_vector = read_lines(file.path(prepped_data_dir, "htdiff-vector.txt"))%>% as.numeric |> as.vector()
-  overstory_treesize_vector = read_lines(file.path(prepped_data_dir, "overstory-treesize-vector.txt")) %>% as.numeric |> as.vector()
-  seedling_counts = read_lines(file.path(prepped_data_dir, "seedling-counts.txt")) %>% as.numeric |> as.vector()
-  n_overstory_trees = read_lines(file.path(prepped_data_dir, "n-overstory-trees.txt")) |> as.numeric() |> as.vector()
-  pos = read_lines(file.path(prepped_data_dir, "pos.txt")) |> as.numeric() |> as.vector()
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
+  
+  seedling_plot_area = read_file(file.path(prepped_data_dir, "plot-area.txt")) |> as.numeric()
+  dist_vector = read_lines(file.path(prepped_data_dir, "dist-vector.txt")) |>
+    as.numeric() |>
+    as.vector()
+  elevdiff_vector = read_lines(file.path(prepped_data_dir, "elevdiff-vector.txt")) |>
+    as.numeric() |>
+    as.vector()
+  overstory_treesize_vector = read_lines(file.path(
+    prepped_data_dir,
+    "overstory-treesize-vector.txt"
+  )) |>
+    as.numeric() |>
+    as.vector()
+  seedling_counts = read_lines(file.path(prepped_data_dir, "seedling-counts.txt")) |>
+    as.numeric() |>
+    as.vector()
+  n_overstory_trees = read_lines(file.path(prepped_data_dir, "n-overstory-trees.txt")) |>
+    as.numeric() |>
+    as.vector()
+  pos = read_lines(file.path(prepped_data_dir, "pos.txt")) |>
+    as.numeric() |>
+    as.vector()
   
   ## Compile data and priors into list for Stan
   
-  data_list <- lst(seedling_plot_area,
-                   n_overstory_trees, 
-                   n_seedling_plots = length(seedling_counts),
-                   overstory_tree_size = overstory_treesize_vector,
-                   seedling_counts,
-                   dist_vector,
-                   htdiff_vector,
-                   obs = length(dist_vector),
-                   pos)    
+  data_list <- lst(
+    seedling_plot_area,
+    n_overstory_trees,
+    n_seedling_plots = length(seedling_counts),
+    overstory_tree_size = overstory_treesize_vector,
+    seedling_counts,
+    dist_vector,
+    #elevdiff_vector, # leave out for models without elevation difference 
+    obs = length(dist_vector),
+    pos
+  )
   
   data_list = c(data_list, priors_list)
   
   # Check for missing data
   if (any(is.na(unlist(data_list)))) stop("Missing values in data.")
+  
   
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
