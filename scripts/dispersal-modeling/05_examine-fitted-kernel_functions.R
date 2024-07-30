@@ -84,12 +84,12 @@ select_fecundity_function = function(fecund_mod) {
 
 ## Functions to compute seed production (fecundity) based on tree height
 calc_fecund_multiplier = function(samples, overstory_tree_size) {
-  fecundity = samples$mu_beta * overstory_tree_size
+  fecundity = exp(samples$mu_beta) * overstory_tree_size
   return(fecundity)
 }
 
 calc_fecund_multiplier_exponent = function(samples, overstory_tree_size) {
-  fecundity = samples$mu_beta * overstory_tree_size^samples$zeta
+  fecundity = exp(samples$mu_beta) * overstory_tree_size^samples$zeta
   return(fecundity)
 }
 
