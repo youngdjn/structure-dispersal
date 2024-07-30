@@ -7,7 +7,7 @@ library(here)
 
 data_dir = readLines(here("data_dir.txt"), n = 1)
 # for Andrew's local work
-data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
+#data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
 
 
 # Main functions for the tasks in this script.
@@ -19,7 +19,7 @@ m = fit_stan_model(
   dataset_name = "delta-PINES", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
   disp_mod = "2Dt", # 2Dt or exppow
   err_mod = "pois", # pois only currently
-  n_warmup = 150, # stan warmup iter
+  n_warmup = 500, # stan warmup iter
   n_iter = 2500, # stan iter, includes warmup
   n_chains = 4, # stan n chains
   n_cores = 4 # stan n cores
