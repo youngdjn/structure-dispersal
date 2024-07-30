@@ -10,7 +10,7 @@ library(ggspatial)
 
 data_dir = readLines(here("data_dir.txt"), n=1)
 
-site = "valley"
+site = "delta"
 
 overstory_tree_filepath = paste0("ttops-live/", site, ".gpkg")
 seedling_plot_filepath = paste0("regen-plots-standardized/", site, ".gpkg")
