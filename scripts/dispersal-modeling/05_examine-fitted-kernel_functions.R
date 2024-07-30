@@ -126,13 +126,13 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   kern_out = sapply(r, kernel_function, samples = samples)
   kern_out = t(kern_out) # one row for each distance from the tree, one column for each model sample
 
-  # Summarize the kernel as the median and 95% credible interval along a range of distances from the
+  # Summarize the kernel as the median and 90% credible interval along a range of distances from the
   # tree
   summarized_kernel = data.frame(
     r = r,
     fit = apply(kern_out, 1, median),
-    lwr = apply(kern_out, 1, quantile, probs = c(0.025)),
-    upr = apply(kern_out, 1, quantile, probs = c(0.975)),
+    lwr = apply(kern_out, 1, quantile, probs = c(0.05)),
+    upr = apply(kern_out, 1, quantile, probs = c(0.95)),
     disp_mod = disp_mod
   )
   # Q: Should fit be summarized by mean or median?
@@ -147,16 +147,16 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   summarized_seedlingshadow = data.frame(
     r = 0:500,
     fit = apply(seeds_out, 1, median),
-    lwr = apply(seeds_out, 1, quantile, probs = c(0.025)),
-    upr = apply(seeds_out, 1, quantile, probs = c(0.975)),
+    lwr = apply(seeds_out, 1, quantile, probs = c(0.05)),
+    upr = apply(seeds_out, 1, quantile, probs = c(0.95)),
     disp_mod = disp_mod
   )
   
   # fecundity parameters
-  mu_beta = quantile(samples$mu_beta, probs = c(0.025, .5, 0.975)) |> round(4)
+  mu_beta = quantile(samples$mu_beta, probs = c(0.05, .5, 0.95)) |> round(4)
   mu_beta_format = paste0(mu_beta[2], " (", mu_beta[1], ", ", mu_beta[3], ")")
   cat("\nFecundity param mu_beta:", mu_beta_format)
-  zeta = quantile(samples$zeta, probs = c(0.025, .5, 0.975)) |> round(4)
+  zeta = quantile(samples$zeta, probs = c(0.05, .5, 0.95)) |> round(4)
   zeta_format = paste0(zeta[2], " (", zeta[1], ", ", zeta[3], ")")
   cat("\nFecundity param zeta:", zeta_format)
   
@@ -169,12 +169,12 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   fecund_out = sapply(tree_size, fecundity_function, samples = samples)
   fecund_out = t(fecund_out) # one row for each distance from the tree, one column for each model sample
  
-   # Summarize the fecundity function as the median and 95% credible interval along a range of tree sizes
+   # Summarize the fecundity function as the median and 90% credible interval along a range of tree sizes
   summarized_fecundity = data.frame(
     tree_size = tree_size,
     fit = apply(fecund_out, 1, median),
-    lwr = apply(fecund_out, 1, quantile, probs = c(0.025)),
-    upr = apply(fecund_out, 1, quantile, probs = c(0.975)),
+    lwr = apply(fecund_out, 1, quantile, probs = c(0.05)),
+    upr = apply(fecund_out, 1, quantile, probs = c(0.95)),
     fecund_mod = fecund_mod
   )
 
