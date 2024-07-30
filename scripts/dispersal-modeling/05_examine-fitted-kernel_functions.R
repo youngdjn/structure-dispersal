@@ -164,8 +164,22 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   # Pick the kernel function based on the specified disp_mod
   fecundity_function = select_fecundity_function(fecund_mod)
   
+  ## Get the fitted fecundity-size relationship across a range of tree sizes
+  tree_size = 10:50
+  fecund_out = sapply(tree_size, fecundity_function, samples = samples)
+  fecund_out = t(fecund_out) # one row for each distance from the tree, one column for each model sample
+ 
+   # Summarize the fecundity function as the median and 95% credible interval along a range of tree sizes
+  summarized_fecundity = data.frame(
+    tree_size = tree_size,
+    fit = apply(fecund_out, 1, median),
+    lwr = apply(fecund_out, 1, quantile, probs = c(0.025)),
+    upr = apply(fecund_out, 1, quantile, probs = c(0.975)),
+    fecund_mod = fecund_mod
+  )
 
-  return(list(kernel = summarized_kernel, shadow = summarized_seedlingshadow, model = model_fit))
+  # Package up the results 
+  return(list(kernel = summarized_kernel, shadow = summarized_seedlingshadow, fecundity = summarized_fecundity, model = model_fit))
 }
 
 
