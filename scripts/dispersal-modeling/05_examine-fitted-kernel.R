@@ -60,15 +60,25 @@ ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels",
 
 # Make a fitted-observed plot for a specific fitted model. This requires knowing which trees
 # contributed to that plot (at least their distances and sizes).
+site_name = "delta"
+species = "PINES"
 dataset_name = paste0(site_name, "-", species)
 disp_mod = "2Dt"
-err_mod = "pois"
+err_mod = "pois_multiplier_exponent_noheight"
+# Note to specify a particular form of the fecundity model, we can tack extra text onto the "err_mod" parameter -- for example, "pois_multiplier_exponent". To select a model without the height difference component, also append "_noheight".
 
+load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
 
-load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod,
-                  plot_size_ha = plot_size_ha, ylim = c(NA, NA))
 ggsave(file.path(data_dir, "figures/fitted-observed-seedlings",
-                 paste0(site_name, "_kernel-", disp_mod, ".png")), width = 6, height = 5)
+                 paste0(site_name, "_", species, "_", disp_mod, "_", err_mod, ".png")), width = 6, height = 5)
+
+site_name = "delta"
+species = "FIRS"
+dataset_name = paste0(site_name, "-", species)
+load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
+
+ggsave(file.path(data_dir, "figures/fitted-observed-seedlings",
+                 paste0(site_name, "_", species, "_", disp_mod, "_", err_mod, ".png")), width = 6, height = 5)
 
 
 # Optionally run this for a different kernel or error model
@@ -239,10 +249,14 @@ cellht = terra::extract(dem, pts_spatial)[, 2]
 elevdiff <- -outer(cellht, treeht, "-")
 
 ## Load the fitted model and extract the parameter samples
-model_filename = paste0(datadir("/stan-models/"), "stanmod_",
-                        dataset_name, "_", disp_mod, "_", err_mod, ".rds")
-model_fit = readRDS(model_filename)
-samples = rstan::extract(model_fit)
+site_name = "delta"
+species = "PINES"
+dataset_name = paste0(site_name, "-", species)
+disp_mod = "2Dt"
+err_mod = "pois"
+fecund_mod = "multiplier_exponent_noheight"
+
+samples = get_stan_model_samples(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, fecund_mod = fecund_mod)
 
 # Summarize across the samples, dropping uncertainty (faster predictions)
 samples_median = map(samples, median)
@@ -257,7 +271,7 @@ elev_diffs_by_plot = apply(elevdiff, 1, FUN = c, simplify = FALSE)
 plan(multicore)
 
 ## OPTIONALLY: set elev diffs to 0 to see effect of ignoring elev diffs
-# elev_diffs_by_plot = 0
+ elev_diffs_by_plot = 0
 
 ## OPTIONALLY: set overstory tree size to a small value to see effect of ignoring tree size
 # overstory_tree_size = rep(quantile(overstory_tree_size, 0.25), length(overstory_tree_size))
