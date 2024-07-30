@@ -67,8 +67,30 @@ select_kernel_function = function(disp_mod) {
   } else {
     stop("Specified dispersal model type does not have a kernel function ('calc_kern_...') defined for it.")
   }
-
   return(kernel_function)
+}
+
+## Function to return the fecundity function based on its name
+select_fecundity_function = function(fecund_mod) {
+  if (fecund_mod == "multiplier_exponent_noheight" | fecund_mod == "multiplier_exponent") {
+    fecundity_function = calc_fecund_multiplier_exponent
+  } else if (disp_mod == "multiplier" | disp_mod == "multiplier_noheight") {
+    fecundity_function = calc_fecund_multiplier
+  } else {
+    stop("Specified fecundity model type does not have a fecundity function ('calc_fecund_...') defined for it.")
+  }
+  return(fecundity_function)
+}
+
+## Functions to compute seed production (fecundity) based on tree height
+calc_fecund_multiplier = function(samples, overstory_tree_size) {
+  fecundity = samples$mu_beta * overstory_tree_size
+  return(fecundity)
+}
+
+calc_fecund_multiplier_exponent = function(samples, overstory_tree_size) {
+  fecundity = samples$mu_beta * overstory_tree_size^samples$zeta
+  return(fecundity)
 }
 
 
@@ -129,6 +151,19 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
     upr = apply(seeds_out, 1, quantile, probs = c(0.975)),
     disp_mod = disp_mod
   )
+  
+  # fecundity parameters
+  mu_beta = quantile(samples$mu_beta, probs = c(0.025, .5, 0.975)) |> round(4)
+  mu_beta_format = paste0(mu_beta[2], " (", mu_beta[1], ", ", mu_beta[3], ")")
+  cat("\nFecundity param mu_beta:", mu_beta_format)
+  zeta = quantile(samples$zeta, probs = c(0.025, .5, 0.975)) |> round(4)
+  zeta_format = paste0(zeta[2], " (", zeta[1], ", ", zeta[3], ")")
+  cat("\nFecundity param zeta:", zeta_format)
+  
+  #### WORKING HERE - 7/30/2024  ####
+  # Pick the kernel function based on the specified disp_mod
+  fecundity_function = select_fecundity_function(fecund_mod)
+  
 
   return(list(kernel = summarized_kernel, shadow = summarized_seedlingshadow, model = model_fit))
 }
