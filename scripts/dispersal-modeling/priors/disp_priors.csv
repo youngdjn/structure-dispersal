@@ -1,6 +1,6 @@
 model,param,prior_mean,prior_sd
 2Dt,p_alpha,8,0.5
-2Dt,p_inv_k_real,0,0.5
+2Dt,p_inv_k_real,0.5,0.5
 2Dt,p_b1_ht,-7, 2
 exppow,p_alpha,5,1
 exppow,p_inv_k,1,3
