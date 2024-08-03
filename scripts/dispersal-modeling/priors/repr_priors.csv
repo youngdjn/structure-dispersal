@@ -1,3 +1,3 @@
 stage,param,prior_mean,prior_sd
-seedling,p_mu_beta,4.7,0.5
+seedling,p_mu_beta,-2.5,2.5
 seedling,p_ri_theta,0,5
