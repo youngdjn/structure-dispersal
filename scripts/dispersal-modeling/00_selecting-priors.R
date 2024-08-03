@@ -37,9 +37,9 @@ calc_kern_2Dt_priors = function(a, k, r) {
   kern
 }
 
-a = 1000 # a shouldn't go below about 1000 or above about 30000
+a = 30000 # a shouldn't go below about 1000 or above about 30000
 # could set prior on log(a) ~ normal(8.5, 0.5) to try and hold it in that range 
-k = 5
+k = 3
 r = 0:500
 kern = calc_kern_2Dt_priors(a = a, k = k, r = r)
 kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
@@ -48,7 +48,7 @@ ggplot(kern_df_1, aes(x=r, y=kern)) +
   geom_line() + theme_bw() 
 
 kern_df_1[101,]
-1e-8 * 5000 * plot_size_ha * 10000
+kern_df_1$kern[10] * (exp(1.94)*20^1.2) * seedling_plot_area
 
 
 
@@ -58,7 +58,7 @@ log(1000) # or much below 7
 
 # Prior on k is set through inv_log_k = inv_logit(inv_k) where inv_k ~ normal(0, 1) 
 library(boot)
-inv_k_real = 2
+inv_k_real = -2
 (1 + exp(-inv_k_real))/2
 1/ (2 * inv.logit(inv_k_real)) # ok this is the same! 
 # To keep k within about 0.5 and 2, inv_k should be between -1 and 2 
