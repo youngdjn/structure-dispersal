@@ -22,20 +22,76 @@ source(here("scripts/dispersal-modeling/05_examine-fitted-kernel_functions.R"))
 # called "model" that has the Stan samples
 
 site_name = "delta"
-species = "PINES"
 plot_size_ha = 0.0201 # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
-# This loads the corresponding Stan model object
+# This loads and summarizes the kernel info from the corresponding Stan model object for particular species, sites, and dispersal kernel types. 
+species = "PINES"
+fitted_2Dt_PINES = get_fitted_kernel(
+  dataset_name = paste0(site_name, "-", species),
+  disp_mod = "2Dt",
+  err_mod = "pois", 
+  fecund_mod = "multiplier_exponent_noheight"
+)
+
+species = "FIRS"
+fitted_2Dt_FIRS = get_fitted_kernel(
+  dataset_name = paste0(site_name, "-", species),
+  disp_mod = "2Dt",
+  err_mod = "pois", 
+  fecund_mod = "multiplier_exponent_noheight"
+)
+
+# Plot the dispersal kernel for the fitted model
+ggplot(data = fitted_2Dt_PINES$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
+  geom_line(linewidth = 1) +
+  theme_bw(20) +
+  scale_color_viridis_d(begin = 0.3, end = 0.7, name = "Kernel") +
+  scale_fill_viridis_d(begin = 0.3, end = 0.7, name = "Kernel") +
+  labs(x = "Distance (m)", y = "Kernel density")
+
+ggplot(data = fitted_2Dt_FIRS$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
+  geom_line(linewidth = 1) +
+  theme_bw(20) +
+  scale_color_viridis_d(begin = 0.3, end = 0.7, name = "Kernel") +
+  scale_fill_viridis_d(begin = 0.3, end = 0.7, name = "Kernel") +
+  labs(x = "Distance (m)", y = "Kernel density")
+
+# Plot the relationship between tree size and fecundity 
+ggplot(data = fitted_2Dt_PINES$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
+  geom_line(linewidth = 1) +
+  theme_bw(20) +
+  scale_color_viridis_d(begin = 0.3, end = 0.7, name = "Fecundity") +
+  scale_fill_viridis_d(begin = 0.3, end = 0.7, name = "Fecundity") +
+  labs(x = "Tree height (m)", y = "Fecundity") + 
+  theme(legend.position = "none")
+
+ggplot(data = fitted_2Dt_FIRS$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
+  geom_line(linewidth = 1) +
+  theme_bw(20) +
+  scale_color_viridis_d(begin = 0.3, end = 0.7, name = "Fecundity") +
+  scale_fill_viridis_d(begin = 0.3, end = 0.7, name = "Fecundity") +
+  labs(x = "Tree height (m)", y = "Fecundity") + 
+  theme(legend.position = "none")
+  
+
+
+## Compare the 2Dt and exppow models
+
+species = "PINES"
 fitted_2Dt = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
-  err_mod = "pois"
+  err_mod = "exppow"
 )
 
 fitted_exppow = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
-  disp_mod = "2Dt",
-  err_mod = "exppow"
+  disp_mod = "exppow",
+  err_mod = "pois"
 )
 loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
 
