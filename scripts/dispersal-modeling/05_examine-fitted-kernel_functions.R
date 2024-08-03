@@ -84,7 +84,7 @@ select_fecundity_function = function(fecund_mod) {
 
 ## Functions to compute seed production (fecundity) based on tree height
 calc_fecund_multiplier = function(samples, overstory_tree_size) {
-  fecundity = exp(samples$mu_beta) * overstory_tree_size
+  fecundity = samples$b * overstory_tree_size
   return(fecundity)
 }
 
@@ -160,7 +160,6 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   zeta_format = paste0(zeta[2], " (", zeta[1], ", ", zeta[3], ")")
   cat("\nFecundity param zeta:", zeta_format)
   
-  #### WORKING HERE - 7/30/2024  ####
   # Pick the kernel function based on the specified disp_mod
   fecundity_function = select_fecundity_function(fecund_mod)
   
