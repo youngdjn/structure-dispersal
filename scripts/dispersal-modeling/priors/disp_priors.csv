@@ -1,5 +1,5 @@
 model,param,prior_mean,prior_sd
-2Dt,p_alpha,4,2
+2Dt,p_alpha,4,1
 2Dt,p_inv_k_real,0,1
 2Dt,p_b1_ht,-7, 2
 exppow,p_alpha,5,1
