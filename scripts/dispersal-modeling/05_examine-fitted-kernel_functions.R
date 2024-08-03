@@ -89,7 +89,7 @@ calc_fecund_multiplier = function(samples, overstory_tree_size) {
 }
 
 calc_fecund_multiplier_exponent = function(samples, overstory_tree_size) {
-  fecundity = exp(samples$mu_beta) * overstory_tree_size^samples$zeta
+  fecundity = samples$b * overstory_tree_size^samples$zeta
   return(fecundity)
 }
 
@@ -106,8 +106,8 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   samples = get_stan_model_samples(dataset_name, disp_mod, err_mod, fecund_mod)
 
   ## Get LOOIC and kernel params
-  a = loo(model_fit)
-  looic = a$estimates["looic", 1]
+  loo_model_fit = loo(model_fit)
+  looic = loo_model_fit$estimates["looic", 1]
   cat("\nLOOIC:", looic, "\n")
 
   # kernel params
