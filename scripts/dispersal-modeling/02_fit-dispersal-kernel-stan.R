@@ -5,9 +5,9 @@
 
 library(here)
 
-data_dir = readLines(here("data_dir.txt"), n = 1)
+#data_dir = readLines(here("data_dir.txt"), n = 1)
 # for Andrew's local work
-#data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
+data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
 
 
 # Main functions for the tasks in this script.
@@ -24,6 +24,7 @@ m = fit_stan_model(
   n_chains = 4, # stan n chains
   n_cores = 4 # stan n cores
 )
+#### NOTE: Current run uses more informative priors on dispersal parameters and slighly more informative prior on fecundity model multiplier parameter b. 
 
 m = fit_stan_model(
   dataset_name = "delta-FIRS", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
@@ -73,10 +74,9 @@ m2 = fit_stan_model_fecund(dataset_name = "delta-PINES",   # which dataset to mo
                            err_mod = "pois",                         # pois only currently
                            fecund_mod = "multiplier_exponent_noheight",                # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
                            n_warmup = 500,                           # stan warmup iter
-                           n_iter = 2500,                             # stan iter, includes warmup
-                           n_chains = 4,                             # stan n chains
-                           n_cores = 4)    
+                           n_iter = 1500,                             # stan iter, includes warmup
+                           n_chains = 3,                             # stan n chains
+                           n_cores = 3)    
 
-loo(m1) # looic 4527
 loo(m2) 
   
