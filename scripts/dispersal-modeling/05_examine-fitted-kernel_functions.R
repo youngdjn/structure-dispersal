@@ -19,6 +19,14 @@ get_stan_model_samples <- function(dataset_name, disp_mod, err_mod, fecund_mod=N
   return(samples)
 }
 
+## Function to load a fitted stan model and return it as a stanfit object
+get_stan_model_fit <- function(dataset_name, disp_mod, err_mod, fecund_mod=NULL) {
+  if(is.null(fecund_mod)) model_filename = file.path(data_dir, "stan-models",
+                                                     paste0("stanmod_", dataset_name, "_", disp_mod, "_", err_mod, ".rds")) else model_filename = file.path(data_dir, "stan-models", paste0("stanmod_", dataset_name, "_", disp_mod, "_", err_mod, "_", fecund_mod, ".rds"))
+  model_fit = readRDS(model_filename)
+  return(model_fit)
+}
+
 ## Function to get tree fecundity from mu_beta (the log of the fecundity scalar b) and tree size
 ## If mu_beta is a vector, it is a set of samples of the parameter from the model
 ## If overstory_tree_size is a vector, it is a set of sizes of multiple trees
@@ -105,8 +113,9 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   ## Load the fitted model and get the parameter samples
   samples = get_stan_model_samples(dataset_name, disp_mod, err_mod, fecund_mod)
 
-  ## Get LOOIC and kernel params
-  loo_model_fit = loo(model_fit)
+  ## Get LOOIC and kernel params 
+  model_fit = get_stan_model_fit(dataset_name, disp_mod, err_mod, fecund_mod)
+  loo_model_fit = loo(model_fit) # Not sure where "model_fit" is coming from! Not def'd in this function
   looic = loo_model_fit$estimates["looic", 1]
   cat("\nLOOIC:", looic, "\n")
 
@@ -142,13 +151,13 @@ get_fitted_kernel = function(dataset_name, disp_mod, err_mod, fecund_mod = NULL)
   mean_tree_size = mean(overstory_tree_size)
   fecundity_out = sapply(samples$mu_beta, q_fun, overstory_tree_size = mean_tree_size)
   # seed rain: one row for each distance from the tree, one column for each model sample:
-  seeds_out = t(t(kern_out) * fecundity_out)
+  seedlings_out = t(t(kern_out) * fecundity_out)
   # median fit and 95% CI
   summarized_seedlingshadow = data.frame(
     r = 0:500,
-    fit = apply(seeds_out, 1, median),
-    lwr = apply(seeds_out, 1, quantile, probs = c(0.05)),
-    upr = apply(seeds_out, 1, quantile, probs = c(0.95)),
+    fit = apply(seedlings_out, 1, median),
+    lwr = apply(seedlings_out, 1, quantile, probs = c(0.05)),
+    upr = apply(seedlings_out, 1, quantile, probs = c(0.95)),
     disp_mod = disp_mod
   )
   
