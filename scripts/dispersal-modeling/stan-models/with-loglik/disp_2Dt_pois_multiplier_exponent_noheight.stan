@@ -1,4 +1,4 @@
-// Seed dispersal model with 2Dt kernel
+// Seed dispersal model with 2Dt kernel, 2-parameter fecundity model, and no height difference adjustment 
 
 functions {
   
