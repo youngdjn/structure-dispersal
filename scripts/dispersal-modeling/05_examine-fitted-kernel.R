@@ -25,8 +25,8 @@ site_name = "delta"
 plot_size_ha = 0.0201 # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 # This loads and summarizes the kernel info from the corresponding Stan model object for particular species, sites, and dispersal kernel types. 
-species = "PINES"
-fitted_2Dt_PINES = get_fitted_kernel(
+species = "ALL"
+fitted_2Dt = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
   err_mod = "pois", 
@@ -42,7 +42,7 @@ fitted_2Dt_FIRS = get_fitted_kernel(
 )
 
 # Plot the dispersal kernel for the fitted model
-ggplot(data = fitted_2Dt_PINES$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
+ggplot(data = fitted_2Dt$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
   geom_line(linewidth = 1) +
   theme_bw(20) +
@@ -59,7 +59,7 @@ ggplot(data = fitted_2Dt_FIRS$kernel, aes(x = r, y = fit, color = disp_mod, fill
   labs(x = "Distance (m)", y = "Kernel density")
 
 # Plot the relationship between tree size and fecundity 
-ggplot(data = fitted_2Dt_PINES$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
+ggplot(data = fitted_2Dt$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
   geom_line(linewidth = 1) +
   theme_bw(20) +
@@ -77,6 +77,9 @@ ggplot(data = fitted_2Dt_FIRS$fecundity, aes(x = tree_size, y = fit, color = fec
   labs(x = "Tree height (m)", y = "Fecundity") + 
   theme(legend.position = "none")
   
+# check convergence of the model by plotting the chains 
+stan_trace(fitted_2Dt$model)
+summary(fitted_2Dt$model)
 
 
 ## Compare the 2Dt and exppow models
