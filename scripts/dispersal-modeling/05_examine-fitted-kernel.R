@@ -25,7 +25,7 @@ site_name = "delta"
 plot_size_ha = 0.0201 # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 # This loads and summarizes the kernel info from the corresponding Stan model object for particular species, sites, and dispersal kernel types. 
-species = "ALL"
+species = "PINES"
 fitted_2Dt = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
