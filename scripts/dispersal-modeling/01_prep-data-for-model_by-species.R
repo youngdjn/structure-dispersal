@@ -3,7 +3,8 @@
 # {datadir}/prepped-for-stan
 
 library(here)
-data_dir = readLines(here("data_dir.txt"), n = 1)
+#data_dir = readLines(here("data_dir.txt"), n = 1)
+data_dir = "/ofo-share" # set directory to base of filetree because plot data * tree data in different folders
 
 
 ## Main functions for the tasks of this script
@@ -62,8 +63,8 @@ source(here("scripts/dispersal-modeling/01_prep-data-for-model_by-species_functi
 
 prep_data_allspecies(
   site_name = "delta",
-  overstory_tree_filepath = "predicted-treecrowns-w-predicted-species/delta.geojson",
-  seedling_plot_filepath = "regen-plots-standardized/delta.gpkg",
+  overstory_tree_filepath = "str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species/delta.geojson",
+  seedling_plot_filepath = "str-disp_data/regen-plots-standardized/delta.gpkg",
   target_crs = 3310,
   seedling_plot_area = 201
 )
