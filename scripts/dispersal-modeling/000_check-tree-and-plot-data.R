@@ -78,7 +78,7 @@ plot_data = plots_delta
 
 # Optionally filter y species 
 tree_data = tree_data |>
-  filter(pred_class_ID == "ABCO")
+  filter(pred_class_ID %in% c("PIPJ"))
 
 template_rast = rast(tree_data, res = 30, extent = ext(tree_data), nlyrs = 1, vals = 0)
 tree_rast = terra::rasterize(tree_data, template_rast, field = "treeID", fun='count')
@@ -95,6 +95,6 @@ plot(distance_rast)
 
 # Test association of seedling counts with distance 
 plot_data$distance_to_tree = extract(distance_rast, plot_data, raw = TRUE, ID = FALSE)
-plot(log10(count_ABCO+1)~distance_to_tree, plot_data)
+ggplot(plot_data, aes(x = distance_to_tree, y = count_PIPJ)) + geom_point() + theme_minimal()
 
 # LOOKS PRETTY GOOD! Maybe longer distance dispersal from PIPJ than from CADE? 
