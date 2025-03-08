@@ -6,9 +6,9 @@
 library(here)
 
 
-#data_dir = readLines(here("data_dir.txt"), n = 1)
+data_dir = readLines(here("data_dir.txt"), n = 1)
 # for Andrew's local work
-data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
+#data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
 
 
 # Main functions for the tasks in this script.
