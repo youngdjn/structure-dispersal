@@ -108,15 +108,15 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
 #### Modified function by Andrew that allows specifying the fecundity model ####
 
 fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresponding data files in datadir/prepped-for-stan/{dataset_name})
-                                 disp_mod, # 2Dt or exppow
-                                 err_mod,  # pois only currently
-                                 fecund_mod, # multiplier, multiplier_exponent, multiplier_intercept, multiplier_exponent_intercept
-                                 n_warmup, # stan warmup iter
-                                 n_iter,   # stan iter includes warmup
-                                 n_chains, # stan n chains
-                                 n_cores) {  # stan n cores
+                          disp_mod, # 2Dt or exppow
+                          err_mod, # pois only currently
+                          fecund_mod, # fecundity model ("multplier" or "multiplier_exponent")
+                          n_warmup, # stan warmup iter
+                          n_iter, # stan iter includes warmup
+                          n_chains, # stan n chains
+                          n_cores) { # stan n cores
   
-  ## Load priors and arrange into list. Load prior values from the code repo. ##
+  # Load priors and arrange into list. Load prior values from the code repo.
   
   disp_priors <- read_csv("scripts/dispersal-modeling/priors/disp_priors.csv") |>
     filter(model == disp_mod) %>%
@@ -134,7 +134,6 @@ fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresp
     map2(priors$prior_mean, priors$prior_sd, c),
     priors$param
   )
-  
   
   
   # -- Load prepped dataset (corresponding data files in datadir/prepped-for-stan/{dataset_name})
@@ -183,21 +182,25 @@ fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresp
   # Check for missing data
   if (any(is.na(unlist(data_list)))) stop("Missing values in data.")
   
-  
   ####### Run Stan model and save samples #######
   options(mc.cores = n_cores)
-
-  model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik/disp_", disp_mod, "_", err_mod, "_", fecund_mod, ".stan")
+  #model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik-and-elevdiff/disp_",
+  #                     disp_mod, "_", err_mod, ".stan")
+  # For now, use the models without elevation difference
+  model_file <- paste0("scripts/dispersal-modeling/stan-models/with-loglik/disp_",
+                       disp_mod, "_", err_mod, "_", fecund_mod, ".stan")
   
-  res <- stan(model_file, data = data_list, chains = n_chains,
-              warmup = n_warmup, iter = n_iter, cores = n_cores)
+  
+  res <- stan(model_file,
+              data = data_list, chains = n_chains,
+              warmup = n_warmup, iter = n_iter, cores = n_cores
+  )
   
   model_dir = file.path(data_dir, "stan-models/")
-  if(!file.exists(model_dir)) dir.create(model_dir)
-  model_filename = paste0(model_dir, "stanmod_", dataset_name,"_",disp_mod, "_", err_mod, "_", fecund_mod,".rds")
+  if (!file.exists(model_dir)) dir.create(model_dir)
+  model_filename = paste0(model_dir, "stanmod_", dataset_name, "_", disp_mod, "_", err_mod, "_", fecund_mod, ".rds")
   
-  saveRDS(res,model_filename)
+  saveRDS(res, model_filename)
   
   return(res)
-  
 }
