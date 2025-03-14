@@ -82,7 +82,7 @@ select_kernel_function = function(disp_mod) {
 select_fecundity_function = function(fecund_mod) {
   if (fecund_mod == "multiplier_exponent_noheight" | fecund_mod == "multiplier_exponent") {
     fecundity_function = calc_fecund_multiplier_exponent
-  } else if (disp_mod == "multiplier" | disp_mod == "multiplier_noheight") {
+  } else if (fecund_mod == "multiplier" | fecund_mod == "multiplier_noheight") {
     fecundity_function = calc_fecund_multiplier
   } else {
     stop("Specified fecundity model type does not have a fecundity function ('calc_fecund_...') defined for it.")
