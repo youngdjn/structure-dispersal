@@ -1,0 +1,249 @@
+# Checking through / debugging Derek's data prep script 
+# This steps manually through the code in "01_prep-data-for-model_by_species_functions.R"
+# AML 1/6/2025
+
+library(tidyverse)
+library(here)
+library(sf)
+library(elevatr)
+library(terra)
+library(rdist)
+
+# Setting up the values needed to test the function 
+
+data_dir = "/Users/latimer/Library/CloudStorage/Box-Box"
+site_name = "crater"
+focal_species = "PILA"
+overstory_tree_filepath = paste0("dev/str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species/", site_name, ".geojson")
+seedling_plot_filepath = paste0("str-disp_data/regen-plots-standardized/", site_name, ".gpkg")
+target_crs = 3310
+seedling_plot_area = 201
+
+
+#prep_data_onespecies = function(site_name, # e.g. "delta"
+#                                focal_species, # 4-letter code
+#                                overstory_tree_filepath, # relative to #`datadir`
+#                                seedling_plot_filepath, # relative to #`datadir`
+#                                seedling_plot_crs,
+#                                target_crs, # target CRS (to project the #raw data sources to)
+#                                seedling_plot_area # area of the plot in #sq m
+#) {
+  
+  dataset_name = paste0(site_name, "-", focal_species)
+  
+  ### Load the overstory tree and seedling data for the specified site
+  overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) 
+  seedling_plots = st_read(file.path(data_dir, seedling_plot_filepath)) 
+  
+  # Convert overstory polys to points
+  overstory_trees = st_centroid(overstory_trees)
+  
+  # Reproject plots to NAD83 coordinates of the trees 
+  overstory_trees = st_transform(overstory_trees, crs = target_crs)
+  seedling_plots = st_transform(seedling_plots, crs = target_crs)
+  
+  # Filter overstory to exclude SNAG and include only the focal species
+  
+  overstory_trees = overstory_trees |>
+    filter(!(pred_class_ID %in% c("SNAG", "unknown")))
+  
+  if (focal_species == "PINES") {
+    overstory_trees = overstory_trees |>
+      filter(pred_class_ID %in% c("PIPJ", "PILA"))
+  } else if (focal_species == "FIRS") {
+    overstory_trees = overstory_trees |>
+      filter(pred_class_ID %in% c("ABCO", "PSME"))
+  } else if (focal_species != "ALL") {
+    overstory_trees = overstory_trees |>
+      filter(pred_class_ID == focal_species)
+  }
+  
+  
+  # # Extract DEM data (elevs) at tree and plot points
+  
+  # Create a combined polygon spanning all the trees and plots
+  #bound_trees = overstory_trees |> 
+  #  st_buffer(100) |>
+  #  st_convex_hull() |>
+  #  st_buffer(100)
+  #bound_plots = seedling_plots |>
+  #  st_buffer(100) |>
+  #  st_convex_hull() |>
+  #  st_buffer(100)
+  #bound = st_union(bound_trees, bound_plots)
+  
+  # Alternatively: first combine the point data for trees and plots 
+  # and then buffer the combined points to get a convex hull
+  allpoints_buffer = st_join(overstory_trees, seedling_plots) |>
+    st_buffer(100)
+  plot(allpoints_buffer[1])
+  bound = st_convex_hull(allpoints_buffer)
+
+  
+  elev = get_elev_raster(bound |> st_as_sf(), z = 14, prj = 4326, src = "aws")
+  
+  overstory_trees$elevation = extract(elev, overstory_trees)
+  seedling_plots$elevation = extract(elev, seedling_plots)
+  
+  # overstory_trees$elevation = runif(nrow(overstory_trees), 0, 100)
+  # seedling_plots$elevation = runif(nrow(seedling_plots), 0, 100)
+  
+  ### Prep overstory tree data: columns ID, x and y location, and size
+  tree_coords = st_coordinates(overstory_trees, )
+  overstory_trees$x = tree_coords[, 1]
+  overstory_trees$y = tree_coords[, 2]
+  
+  # Only keep trees > 10 m tall
+  overstory_trees = overstory_trees %>%
+    filter(Z > 10) %>%
+    mutate(size = Z) # "size" is just the height
+  
+  overstory_trees = overstory_trees %>%
+    select(id = treeID, x, y, size, elevation, Z) |>
+    mutate(elevation_top = elevation + Z)
+  
+  st_geometry(overstory_trees) = NULL
+  
+  overstory_tree_size <- overstory_trees$size
+  
+  
+  # Prep seedling data with columns: plot id, x and y position, and years with the value being the
+  # number of seedlings in the year
+  
+  coords = st_coordinates(seedling_plots)
+  seedling_plots$x = coords[, 1]
+  seedling_plots$y = coords[, 2]
+  
+  # For Crater Fire only, need to thin plots to exclude low severity and convert seedling density to
+  # count
+  if (grepl("crater", dataset_name)) {
+    seedling_plots = seedling_plots %>%
+      filter(BurnClass != "Low")
+  }
+  
+#### CHECK seedling counts 
+count_data <- seedling_plots |> 
+  st_drop_geometry() |> 
+  select(starts_with("count"))
+
+apply(count_data, 2, f <- function(x){sum(x>0)}) / nrow(count_data)
+# Delta:
+  #count_ALL  count_ABCO  count_PILA  count_PIPJ  count_PSME  count_QUKE 
+  #0.93442623  0.27868852  0.02622951  0.86885246  0.54426230  0.000000 
+  #count_CADE  count_PIAT  count_FIRS count_PINES 
+  #0.56393443  0.00000000  0.64590164  0.86885246
+
+
+
+
+  
+  
+  # Specify the column name for the observed count based on the focal species
+  count_col = paste0("count_", focal_species)
+  
+  seedling_plots = seedling_plots %>%
+    dplyr::select(x, y, observed_count = one_of(count_col), elevation)
+  
+  
+#### CHECK 
+  #plot seedling counts 
+  
+  hist(seedling_plots$observed_count)
+  
+    ggplot(seedling_plots, aes(x=x, y=y, color = log(observed_count+0.1))) + geom_point()
+  #plot overstory trees 
+    ggplot(overstory_trees, aes(x=x, y=y, color = Z)) + geom_point()
+  # Put these together 
+    ggplot(seedling_plots, aes(x=x, y=y, color = log(observed_count+0.1))) + geom_point() + ggplot(overstory_trees, aes(x=x, y=y, color = Z)) + geom_point()
+    
+    plot.new() 
+    palette(rainbow(100))
+    plot(y~x, seedling_plots, col = observed_count+0.1, pch = 16)
+    points(y~x, overstory_trees, col = "darkgreen", pch = ".", cex=2)
+  
+  st_geometry(seedling_plots) = NULL
+  
+  # Assign a plot ID
+  seedling_plots$seedling_plot_id <- seq_len(nrow(seedling_plots))
+  
+  # Get seedling count
+  seedling_counts <- seedling_plots$observed_count
+  
+  
+  # Round seedling count fractions up or down randomly (with p = fraction)
+  round_frac <- function(x) {
+    ifelse(runif(length(x)) < (x %% 1), ceiling(x), floor(x))
+  }
+  seedling_counts[seedling_counts %% 1 > 0] <- round_frac(seedling_counts[seedling_counts %% 1 > 0])
+  
+  
+  
+  ### Calculate distance matrix for distance between each overstory tree and each plot
+  
+  d2min <- 0.01
+  
+  dist_sq = outer(seedling_plots$x, overstory_trees$x, "-")^2 +
+    outer(seedling_plots$y, overstory_trees$y, "-")^2
+  dist_sq[dist_sq < d2min] <- d2min # Is this step necessary?
+  
+  
+  r <- sqrt(dist_sq)
+  
+  # Any distances > 300  get set to NA
+  r_cutoff = ifelse(r > 300, 0, r)
+  r_cutoff = ifelse(r_cutoff == 0, NA, r)
+  
+    ## Add one dummy tree at 300 m distance to each plot, so there are no plots with zero trees
+  r_cutoff = cbind(r_cutoff, rep(300, nrow(r_cutoff)))
+  
+  # -- Prepare the objects needed to pass a "ragged matrix" of pairwise distances to stan
+  # number of non-NA values (overstory tree distances) per row (i.e. per seedling plot)
+  n_nonNA = rowSums(!is.na(r_cutoff))
+
+  r_cutoff_vecfull = as.vector(t(r_cutoff))
+
+  r_cutoff_vec = r_cutoff_vecfull[!is.na(r_cutoff_vecfull)] # 1-D vector of all the non-NA values
+  # index of the first non-NA value (tree distance) for each plot
+  pos = cumsum(c(1, n_nonNA[-length(n_nonNA)]))
+  
+  ### Calc elevation diffrence (treetop to plot) matrix
+  elev_diff = -outer(seedling_plots$elevation, overstory_trees$elevation_top, "-")
+  
+  ## Add one dummy tree at 300 m distance with 0 height diff, so there are no plots with zero trees
+  elev_diff = cbind(elev_diff, rep(0, nrow(elev_diff)))
+  
+  # Prepare it as well to pass as a ragged array, but dropping the same trees as were dropped from
+  # the dist vector
+  elevdiff_cutoff_vecfull = as.vector(t(elev_diff))
+  elevdiff_cutoff_vec = elevdiff_cutoff_vecfull[!is.na(r_cutoff_vecfull)]
+  
+  # Get the overstory tree sizes in the same format (one vector of sizes, indexed using the
+  # `n_nonNA` and `pos` vectors) Note: this will replicate tree sizes when they occur in multiple
+  # plots; previously with the square dist mat approach they were not replicated because all trees
+  # (all the same trees) were used for every plot. This new approach requires 15x the number of
+  # values to store the tree sizes. Not sure of its effect on stan memory and speed.
+  
+  # Get list of vector indexes to the tree IDs. Each list element corresponds to a plot, and it
+  # contains a vector that lists the column indexes for the trees that match that plot (i.e. are
+  # within 300 m)
+  indexes = apply(r_cutoff, 1, function(x) which(!is.na(x)))
+  indexes_vec = unlist(indexes)
+  
+  # Add one dummy tree at 300 m distance with 0 height diff and of average size, so there are no
+  # plots with zero trees
+  overstory_tree_size = c(overstory_tree_size, mean(overstory_tree_size))
+  
+  overstory_treesize_vec = overstory_tree_size[indexes_vec]
+  
+  # Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
+  prepped_data_dir = file.path(data_dir, "str-disp_data/prepped-for-stan", dataset_name)
+  dir.create(prepped_data_dir, recursive = TRUE)
+  
+  write_file(as.character(seedling_plot_area), file.path(prepped_data_dir, "plot-area.txt"))
+  write_lines(r_cutoff_vec, file.path(prepped_data_dir, "dist-vector.txt"))
+  write_lines(elevdiff_cutoff_vec, file.path(prepped_data_dir, "elevdiff-vector.txt"))
+  write_lines(overstory_treesize_vec, file.path(prepped_data_dir, "overstory-treesize-vector.txt"))
+  write_lines(seedling_counts, file.path(prepped_data_dir, "seedling-counts.txt"))
+  write_lines(n_nonNA, file.path(prepped_data_dir, "n-overstory-trees.txt"))
+  write_lines(pos, file.path(prepped_data_dir, "pos.txt"))
+}
