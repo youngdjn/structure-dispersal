@@ -28,14 +28,16 @@ m_multiplier = fit_stan_model_fecund(
 )
 #### NOTE: Current run uses more informative priors on dispersal parameters and slighly more informative prior on fecundity model multiplier parameter b. 
 
-m_multiplier_exponent = fit_stan_model(
-  dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+m_multiplier_exponent = fit_stan_model_fecund(
+  dataset_name = "delta-PIPJ",
   disp_mod = "2Dt", # 2Dt or exppow
   err_mod = "pois", # pois only currently
+  fecund_mod = "multiplier_exponent",
   n_warmup = 500, # stan warmup iter
-  n_iter = 2000, # stan iter, includes warmup
+  n_iter = 1500, # stan iter, includes warmup
   n_chains = 3, # stan n chains
   n_cores = 3 # stan n cores
+)
 
 m = fit_stan_model(
   dataset_name = "delta-FIRS", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
