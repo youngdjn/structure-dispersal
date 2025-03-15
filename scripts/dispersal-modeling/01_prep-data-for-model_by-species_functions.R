@@ -50,8 +50,8 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
 
   elev = get_elev_raster(bound |> st_as_sf(), z = 14, prj = 4326, src = "aws")
 
-  overstory_trees$elevation = extract(elev, overstory_trees)
-  seedling_plots$elevation = extract(elev, seedling_plots)
+  overstory_trees$elevation = terra::extract(elev, overstory_trees)
+  seedling_plots$elevation = terra::extract(elev, seedling_plots)
 
   # overstory_trees$elevation = runif(nrow(overstory_trees), 0, 100)
   # seedling_plots$elevation = runif(nrow(seedling_plots), 0, 100)
@@ -168,7 +168,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
   overstory_treesize_vec = overstory_tree_size[indexes_vec]
 
   # Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
+  prepped_data_dir = file.path(data_dir, "str-disp_data/prepped-for-stan", dataset_name)
   dir.create(prepped_data_dir, recursive = TRUE)
 
   write_file(as.character(seedling_plot_area), file.path(prepped_data_dir, "plot-area.txt"))
