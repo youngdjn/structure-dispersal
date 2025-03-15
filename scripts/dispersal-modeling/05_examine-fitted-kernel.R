@@ -25,24 +25,28 @@ site_name = "delta"
 plot_size_ha = 0.0201 # 0.09 for crater, 0.0113 for Chips, 0.0201 for others
 
 # This loads and summarizes the kernel info from the corresponding Stan model object for particular species, sites, and dispersal kernel types. 
-species = "PINES"
-fitted_2Dt = get_fitted_kernel(
+species = "PIPJ"
+fitted_2Dt_multiplier = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
   err_mod = "pois", 
-  fecund_mod = "multiplier_exponent_noheight"
+  fecund_mod = "multiplier"
 )
 
-species = "FIRS"
-fitted_2Dt_FIRS = get_fitted_kernel(
+species = "PIPJ"
+fitted_2Dt_PIPJ_multiplier_exponent = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
   err_mod = "pois", 
-  fecund_mod = "multiplier_exponent_noheight"
+  fecund_mod = "multiplier_exponent"
 )
 
 # Plot the dispersal kernel for the fitted model
-ggplot(data = fitted_2Dt$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
+
+model = fitted_2Dt_PIPJ_multiplier_exponent
+model = fitted_2Dt_PIPJ_multiplier
+
+ggplot(data = model$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
   geom_line(linewidth = 1) +
   theme_bw(20) +
@@ -59,7 +63,7 @@ ggplot(data = fitted_2Dt_FIRS$kernel, aes(x = r, y = fit, color = disp_mod, fill
   labs(x = "Distance (m)", y = "Kernel density")
 
 # Plot the relationship between tree size and fecundity 
-ggplot(data = fitted_2Dt$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
+ggplot(data = model$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
   geom_line(linewidth = 1) +
   theme_bw(20) +
@@ -68,23 +72,16 @@ ggplot(data = fitted_2Dt$fecundity, aes(x = tree_size, y = fit, color = fecund_m
   labs(x = "Tree height (m)", y = "Fecundity") + 
   theme(legend.position = "none")
 
-ggplot(data = fitted_2Dt_FIRS$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, fill = fecund_mod)) +
-  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
-  geom_line(linewidth = 1) +
-  theme_bw(20) +
-  scale_color_viridis_d(begin = 0.3, end = 0.7, name = "Fecundity") +
-  scale_fill_viridis_d(begin = 0.3, end = 0.7, name = "Fecundity") +
-  labs(x = "Tree height (m)", y = "Fecundity") + 
-  theme(legend.position = "none")
-  
+
 # check convergence of the model by plotting the chains 
 stan_trace(fitted_2Dt$model)
+fitted_2Dt$model
 summary(fitted_2Dt$model)
 
 
 ## Compare the 2Dt and exppow models
 
-species = "PINES"
+species = "PIPJ"
 fitted_2Dt = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
@@ -120,10 +117,10 @@ ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels",
 # Make a fitted-observed plot for a specific fitted model. This requires knowing which trees
 # contributed to that plot (at least their distances and sizes).
 site_name = "delta"
-species = "PINES"
+species = "PIPJ"
 dataset_name = paste0(site_name, "-", species)
 disp_mod = "2Dt"
-err_mod = "pois_multiplier_exponent_noheight"
+err_mod = "pois_multiplier"
 # Note to specify a particular form of the fecundity model, we can tack extra text onto the "err_mod" parameter -- for example, "pois_multiplier_exponent". To select a model without the height difference component, also append "_noheight".
 
 load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
@@ -275,8 +272,13 @@ pts_spatial = pts
 st_geometry(pts) = NULL
 
 ## load the tree coords
-trees = st_read(datadir(paste0("/ttops-live/", site_name, ".gpkg"))) |> st_transform(3310)
-tree_coords = st_coordinates(trees)
+trees = st_read(paste0("/Users/latimer/Library/CloudStorage/Box-Box/dev/str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species/", site_name, ".geojson")) |> st_transform(3310)
+
+trees = filter(trees, pred_class_ID == "PIPJ")
+
+trees = st_centroid(trees)
+
+tree_coords = st_coordinates(trees[1])
 trees$x = tree_coords[, 1]
 trees$y = tree_coords[, 2]
 tree_data = trees
@@ -309,11 +311,11 @@ elevdiff <- -outer(cellht, treeht, "-")
 
 ## Load the fitted model and extract the parameter samples
 site_name = "delta"
-species = "PINES"
+species = "PIPJ"
 dataset_name = paste0(site_name, "-", species)
 disp_mod = "2Dt"
 err_mod = "pois"
-fecund_mod = "multiplier_exponent_noheight"
+fecund_mod = "multiplier"
 
 samples = get_stan_model_samples(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, fecund_mod = fecund_mod)
 
@@ -337,8 +339,7 @@ plan(multicore)
 
 # Use the fitted model to make the predictions for this new dataset of "plots" representing grid
 # cells
-plot_seedl_preds = future_map2_dfr(tree_dists_by_plot, elev_diffs_by_plot, predict_seedl_plot,
-                                   samples = samples_median, tree_sizes = overstory_tree_size)
+plot_seedl_preds = future_map2_dfr(tree_dists_by_plot, elev_diffs_by_plot, predict_seedl_plot, samples = samples_median, tree_sizes = overstory_tree_size)
 row.names(plot_seedl_preds) = NULL
 
 pts = bind_cols(pts, plot_seedl_preds)
