@@ -8,7 +8,7 @@ library(here)
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
 ## Main functions for the tasks of this script
-source("./scripts/dispersal-modeling/01_prep-data-for-model_by-species_functions.R")
+source(here("scripts/dispersal-modeling/01_prep-data-for-model_by-species_functions.R"))
 
 #### Summarize data across sites
 
