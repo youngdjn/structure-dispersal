@@ -168,7 +168,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
   overstory_treesize_vec = overstory_tree_size[indexes_vec]
 
   # Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
-  prepped_data_dir = file.path(data_dir, "str-disp_data/prepped-for-stan", dataset_name)
+  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
   dir.create(prepped_data_dir, recursive = TRUE)
 
   write_file(as.character(seedling_plot_area), file.path(prepped_data_dir, "plot-area.txt"))
