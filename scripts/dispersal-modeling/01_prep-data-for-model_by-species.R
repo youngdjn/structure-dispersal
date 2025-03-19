@@ -2,13 +2,13 @@
 # in the appropriate format for feeding to a Stan model. Prepped data saved in
 # {datadir}/prepped-for-stan
 
+
+# Data directory
 library(here)
-#data_dir = readLines(here("data_dir.txt"), n = 1)
-#data_dir = "/ofo-share" # set directory to base of filetree because plot data * tree data in different folders
-data_dir = "/Users/latimer/Library/CloudStorage/Box-Box" # set directory to base of filetree because plot data * tree data in different folders
+if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
 ## Main functions for the tasks of this script
-source(file.path(data_dir, "dev/structure-dispersal/scripts/dispersal-modeling/01_prep-data-for-model_by-species_functions.R"))
+source("./scripts/dispersal-modeling/01_prep-data-for-model_by-species_functions.R")
 
 #### Summarize data across sites
 
@@ -63,25 +63,18 @@ source(file.path(data_dir, "dev/structure-dispersal/scripts/dispersal-modeling/0
 
 prep_data_allspecies(
   site_name = "delta",
-  overstory_tree_filepath = "dev/str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species/delta.geojson",
-  seedling_plot_filepath = "str-disp_data/regen-plots-standardized/delta.gpkg",
+  overstory_tree_filepath = file.path("predicted-treecrowns-w-predicted-species/delta.geojson"),
+  seedling_plot_filepath = file.path("regen-plots-standardized/delta.gpkg"),
   target_crs = 3310,
   seedling_plot_area = 201
 )
 
-# prep_data(
-#   dataset_name = "delta-PINES",
-#   overstory_tree_filepath = "dev/str-disp_drone-data-v2/predicted-treecrowns-w#-predicted-species/delta.geojson",
-#   seedling_plot_filepath = "str-disp_data/regen-plots-standardized/delta.gpkg",
-#   target_crs = 3310,
-#   seedling_plot_area = 201
-#)
 
 prep_data_onespecies(site_name = "delta", # e.g. "delta"
-                                focal_species = "PINES", # 4-letter code
-                                overstory_tree_filepath = "dev/str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species/delta.geojson", # relative to `datadir`
-                                seedling_plot_filepath = "str-disp_data/regen-plots-standardized/delta.gpkg", # relative to `datadir`
-                                target_crs = 3310, # target CRS (to project the raw data sources to)
-                                seedling_plot_area = 201 # area of the plot in sq m
+    focal_species = "FIRS", # 4-letter code
+    overstory_tree_filepath = file.path("predicted-treecrowns-w-predicted-species/delta.geojson"),
+    seedling_plot_filepath = file.path("regen-plots-standardized/delta.gpkg"),
+    target_crs = 3310, # target CRS (to project the raw data sources to)
+    seedling_plot_area = 201 # area of the plot in sq m
 ) 
 
