@@ -5,11 +5,8 @@
 
 library(here)
 
-
-#data_dir = readLines(here("data_dir.txt"), n = 1)
-# for Andrew's local work
-data_dir = "/Users/latimer/Library/CloudStorage/Box-Box/str-disp_data"
-
+# Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
+if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
 # Main functions for the tasks in this script.
 source(here("scripts/dispersal-modeling/02_fit-dispersal-kernel-stan_functions.R"))
