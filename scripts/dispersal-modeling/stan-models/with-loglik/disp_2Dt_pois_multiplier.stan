@@ -5,10 +5,16 @@ functions {
     // Calculate expected number of seeds per tree given tree size
     vector q_fun(real b, int n_overstory_trees, vector overstory_tree_size) { 
         vector[n_overstory_trees] q;
-        q = b * overstory_tree_size; // equation that converts from tree size to seeds; can be altered if info available on functional form -- note the form of this will also depend on how size is measured (height vs dbh vs basal area)
-        // A standard alternative form: q = b * pow(overstory_tree_size, zeta), where zeta is often set at 2 or sometimes 8/3 when size is in terms of dbh, or can be fitted
+        q = b * overstory_tree_size; // equation that converts from tree size to seeds; can be altered if info available on functional form. 
+        // A standard alternative form: q = b * pow(overstory_tree_size, zeta)
         // Or adding an intercept: q = b * (pow(overstory_tree_size, zeta) - eta)
         return(q);
+    }
+    
+    vector disp_prob(real k, real a, int n_overstory_trees, vector dist_vector) { 
+      vector[n_overstory_trees] kernel_prob;
+      kernel_prob = (k / (pi() * a)) * pow(1 + square(dist_vector) / a, -1-k); // apply 2Dt kernel to the distances for all trees associated with a given plot
+      return(kernel_prob);
     }
 }
   
@@ -64,20 +70,15 @@ transformed parameters {
 
     b = exp(mu_beta); // fecundity multiplier parameter has lognormal prior via normal prior on mu_beta
 
-    // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
+    // for each plot, get the expected number of seedlings, based on the vectors of kernel values and fecundity values, summed across all source trees. 
     for(i in 1:n_seedling_plots){
         
-          //TODO: can make this easier to read by computing each term first?
-          
-          mu[i] = sum(k / (pi() * a) * pow(1 + square(segment(dist_vector, pos[i], n_overstory_trees[i])) / a, -1-k) .*  // dispersal kernel
+          mu[i] = sum( disp_prob(k, a, n_overstory_trees[i], segment(dist_vector, pos[i], n_overstory_trees[i])) .* // dispersal kernel
 
             q_fun(b, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) ) ) * // seeds per tree based on size
             seedling_plot_area; // area in which seeds land 
 
        	  log_lik[i] = poisson_lpmf(seedling_counts[i] | mu[i]); // CHECK if ok to leave here or move back to gen quantities
-            
- 
-          //TODO: where does the area (m) come into this expression besides seedling_plot_area?
 
     }
 
