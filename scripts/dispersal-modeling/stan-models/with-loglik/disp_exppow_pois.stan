@@ -73,11 +73,7 @@ transformed parameters {
             seedling_plot_area; // area in which seeds land 
 
 
-
        	  log_lik[i] = poisson_lpmf(seedling_counts[i] | mu[i]);
-            
- 
-          //TODO: where does the area (m) come into this expression besides seedling_plot_area?
 
     }
 
