@@ -6,7 +6,7 @@ exppow,p_alpha,4,1
 exppow,p_inv_k,0,1
 invpow,p_alpha,3,1
 invpow,p_k_real,0,1
-lognorm,p_mu_disp,2,1
-lognorm,p_sd_disp,3,3
+lognorm,p_alpha,5,0.5
+lognorm,p_k,1,0.1
 weibull,p_alpha,2,1
 weibull,p_inv_k,3,3
