@@ -51,15 +51,15 @@ data {
 
 parameters {
     real alpha; // alpha parameter (related to scale)
-    real inv_k; // (Inv.) shape parameter
+    real inv_k_real; // (Inv.) shape parameter
     real mu_beta; // Mean log of b
 }
 
 transformed parameters {
     real a; // Scale parameter
     real k; // Shape parameter
-    a = exp(alpha - inv_k);
-    k = inv(inv_k);
+    a = exp(alpha);
+    k = inv(2 * inv_logit(inv_k_real));
 
     vector[n_seedling_plots] log_lik;
 
@@ -90,7 +90,7 @@ transformed parameters {
 model {
 
     alpha ~ normal(p_alpha[1], p_alpha[2]);
-	  inv_k ~ normal(p_inv_k[1], p_inv_k[2]);
+	  inv_k_real ~ normal(p_inv_k[1], p_inv_k[2]);
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
 
     seedling_counts ~ poisson(mu);
