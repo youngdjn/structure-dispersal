@@ -64,7 +64,7 @@ transformed parameters {
 
     vector[n_seedling_plots] log_lik;
 
-    vector[n_seedling_plots] mu; // Mean number of seedlings per plot !!!CHECK: is it right to define mu here and not in model?
+    vector[n_seedling_plots] mu; // Predicted mean number of seedlings per plot 
 
     real b; // fecundity multiplier parameter
 
