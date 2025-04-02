@@ -17,10 +17,10 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
 
   # Load priors and arrange into list. Load prior values from the code repo.
 
-  disp_priors <- read_csv("scripts/dispersal-modeling/priors/disp_priors.csv") |>
+  disp_priors <- read_csv(here("scripts/dispersal-modeling/priors/disp_priors.csv")) |>
     filter(model == disp_mod) %>%
     select(-model)
-  repr_priors <- read_csv("scripts/dispersal-modeling/priors/repr_priors.csv") |>
+  repr_priors <- read_csv(here("scripts/dispersal-modeling/priors/repr_priors.csv")) |>
     filter(stage == "seedling") %>%
     select(-stage)
   priors <- bind_rows(disp_priors, repr_priors)
@@ -108,7 +108,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
 #### Modified function by Andrew that allows specifying the fecundity model ####
 
 fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresponding data files in datadir/prepped-for-stan/{dataset_name})
-                          disp_mod, # 2Dt or exppow
+                          disp_mod, # 2Dt or exppow or lognormal
                           err_mod, # pois only currently
                           fecund_mod, # fecundity model ("multplier" or "multiplier_exponent")
                           n_warmup, # stan warmup iter
