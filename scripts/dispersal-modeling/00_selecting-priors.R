@@ -73,6 +73,28 @@ inv_k_real ~ dnorm(1, 1)
 
 ## Exponential dispersal model ###
 
+calc_kern_exppow_priors = function(a, k, r) {
+  kern = exp(-r/a)^k * k / (2 * pi * a^2 * gamma(2/k))
+  kern
+}
+
+a = 100 # a shouldn't go below about 20 or too much above about 500
+k = 5 # k shouldn't go below about 0.5 or above about 5 
+r = 0:400
+kern = calc_kern_exppow_priors(a = a, k = k, r = r)
+kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
+# plot the result
+ggplot(kern_df_1, aes(x=r, y=kern)) +
+  geom_line() + theme_bw() 
+
+# Prior ideas for a: log(a) ~ dnorm(4, 0.5)
+# Prior ideas for k: inv_k_real ~ dnorm(0, 1)
+log(500)
+
+
+inv_k_real = 2
+(1 + exp(-inv_k_real))/2
+
 
 #### Fecundity Models ####
 
