@@ -61,8 +61,7 @@ calc_kern_2Dt = function(samples, r) {
 }
 
 calc_kern_exppow = function(samples, r) {
-  kern = samples$k / (2 * pi * samples$a^2 * gamma(2 / samples$k)) *
-    exp(-(r / samples$a)^samples$k)
+  kern = exp(-(r / samples$a)^samples$k) * samples$k / (2 * pi * samples$a^2 * gamma(2 / samples$k)) 
   return(kern)
 }
 
