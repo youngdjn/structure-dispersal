@@ -32,6 +32,14 @@ fitted_2Dt_multiplier = get_fitted_kernel(
 )
 
 species = "PIPJ"
+fitted_exppow_multiplier = get_fitted_kernel(
+  dataset_name = paste0(site_name, "-", species),
+  disp_mod = "exppow",
+  err_mod = "pois", 
+  fecund_mod = "multiplier"
+)
+
+species = "PIPJ"
 fitted_2Dt_PIPJ_multiplier_exponent = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
@@ -43,6 +51,7 @@ fitted_2Dt_PIPJ_multiplier_exponent = get_fitted_kernel(
 
 model = fitted_2Dt_PIPJ_multiplier_exponent
 model = fitted_2Dt_PIPJ_multiplier
+model = fitted_exppow_multiplier
 
 ggplot(data = model$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
@@ -83,7 +92,7 @@ species = "PIPJ"
 fitted_2Dt = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
-  err_mod = "exppow"
+  err_mod = "pois"
 )
 
 fitted_exppow = get_fitted_kernel(
@@ -91,6 +100,7 @@ fitted_exppow = get_fitted_kernel(
   disp_mod = "exppow",
   err_mod = "pois"
 )
+
 loo::loo_compare(loo(fitted_2Dt$model), loo(fitted_exppow$model))
 
 
@@ -117,7 +127,7 @@ ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels",
 site_name = "delta"
 species = "PIPJ"
 dataset_name = paste0(site_name, "-", species)
-disp_mod = "2Dt"
+disp_mod = "exppow"
 err_mod = "pois_multiplier"
 # Note to specify a particular form of the fecundity model, we can tack extra text onto the "err_mod" parameter -- for example, "pois_multiplier_exponent". To select a model without the height difference component, also append "_noheight".
 
