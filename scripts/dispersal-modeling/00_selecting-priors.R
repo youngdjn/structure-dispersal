@@ -71,7 +71,7 @@ inv_k_real = 0.55
 k = 1 / (2*inv.logit(inv_k_real))
 inv_k_real ~ dnorm(1, 1)
 
-## Exponential dispersal model ###
+#### Exponential dispersal model ####
 
 calc_kern_exppow_priors = function(a, k, r) {
   kern = exp(-r/a)^k * k / (2 * pi * a^2 * gamma(2/k))
@@ -79,7 +79,7 @@ calc_kern_exppow_priors = function(a, k, r) {
 }
 
 a = 100 # a shouldn't go below about 20 or too much above about 500
-k = 5 # k shouldn't go below about 0.5 or above about 5 
+k = 3 # k shouldn't go below about 0.5 or above about 5 
 r = 0:400
 kern = calc_kern_exppow_priors(a = a, k = k, r = r)
 kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
@@ -87,14 +87,39 @@ kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
 ggplot(kern_df_1, aes(x=r, y=kern)) +
   geom_line() + theme_bw() 
 
-# Prior ideas for a: log(a) ~ dnorm(4, 0.5)
-# Prior ideas for k: inv_k_real ~ dnorm(0, 1)
+# Prior ideas for a: a = exp(alpha - kappa) alpha ~ dnorm(3, 1)
+# Prior ideas for kappa = 1/k: inv_k_real ~ dgamma(3, 3)
+exp(3)
+
+
+inv_k_real = 0
+(1 + exp(-inv_k_real))/2
+
+
+#### Lognormal dispersal model ####
+
+calc_kern_lognormal_priors = function(a, k, r) {
+  mu = log(a)-k^2/2
+  kern = exp(-((log(r)-mu)^2)/(2*k^2))/(k*(2*pi)^(3/2)*r^2)
+  kern
+}
+
+a = 500 # a shouldn't go below about 50 or too much above about 500
+k = 1 # k should be very close to 1 -- very strong effects above 1.1 or below 0.9
+r = 1:1000
+kern = calc_kern_lognormal_priors(a = a, k = k, r = r)
+kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
+# plot the result
+ggplot(kern_df_1, aes(x=r, y=kern)) +
+  geom_line() + theme_bw() 
+
+# Prior ideas for a: log(a) ~ dnorm(5, 0.5)
+# Prior ideas for k: k ~ dnorm(1, 0.1)
 log(500)
 
 
 inv_k_real = 2
 (1 + exp(-inv_k_real))/2
-
 
 #### Fecundity Models ####
 
