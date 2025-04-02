@@ -14,8 +14,11 @@ functions {
     vector disp_prob(real k, real a, int n_overstory_trees, vector dist_vector) { 
       vector[n_overstory_trees] kernel_prob;
       real mu_ln;
+      vector[n_overstory_trees] log_dist_vector_minus_mu_ln;
       mu_ln = log(a) - square(k)/2;
-      kernel_prob = exp(-(square(log(dist_vector)-mu_ln))/(2*square(k)))/(k*pow(2*pi(), 1.5)*square(dist_vector)); // apply 2-parameter lognormal kernel to the distances for all trees associated with a given plot
+      log_dist_vector_minus_mu_ln = log(dist_vector) - mu_ln;
+      
+      kernel_prob = exp(-square(log_dist_vector_minus_mu_ln) / (2*square(k)) / (k*pow(2*pi(), 1.5)*square(dist_vector)); // apply 2-parameter lognormal kernel to the distances for all trees associated with a given plot
       return(kernel_prob);
     }
 }
@@ -53,15 +56,15 @@ data {
 
 parameters {
     real alpha; // alpha parameter (related to scale)
-    real inv_k; // (Inv.) shape parameter
+    real kappa; // shape parameter 
     real mu_beta; // Mean log of b
 }
 
 transformed parameters {
     real a; // Scale parameter
     real k; // Shape parameter
-    a = exp(alpha - inv_k);
-    k = inv(inv_k);
+    a = exp(alpha);
+    k = exp(kappa);
 
     vector[n_seedling_plots] log_lik;
 
@@ -73,14 +76,10 @@ transformed parameters {
 
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
     for(i in 1:n_seedling_plots){
-        
-          //TODO: can make this easier to read by computing each term first?
-          // old version of exppow: sum(k / (2*pi() * square(a) * tgamma(2/k)) * exp(- pow(segment(dist_vector, pos[i], n_overstory_trees[i]) / a, k))
 
           mu[i] = sum( disp_prob(k, a, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i])) .* // Schurr's generalized exponential kernel
             q_fun(b, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) ) ) * // seeds per tree based on size
-            seedling_plot_area; // area in which seeds land 
-
+            seedling_plot_area; // area of plot
 
        	  log_lik[i] = poisson_lpmf(seedling_counts[i] | mu[i]);
 
@@ -92,7 +91,7 @@ transformed parameters {
 model {
 
     alpha ~ normal(p_alpha[1], p_alpha[2]);
-	  inv_k ~ normal(p_inv_k[1], p_inv_k[2]);
+	  kappa ~ normal(p_kappa[1], p_kappa[2]);
     mu_beta ~ normal(p_mu_beta[1], p_mu_beta[2]);
 
     seedling_counts ~ poisson(mu);
