@@ -13,7 +13,7 @@ source(here("scripts/dispersal-modeling/02_fit-dispersal-kernel-stan_functions.R
 
 # Fit a model for a specific site, disp function, error model, and stan parameters. See
 # 02_fit-dispersal-kernel_functions.R for parameter definitions.
-m_multiplier = fit_stan_model_fecund(
+m_2Dt_multiplier = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
   disp_mod = "2Dt", # 2Dt or exppow
   err_mod = "pois", # pois only currently
@@ -24,16 +24,33 @@ m_multiplier = fit_stan_model_fecund(
   n_cores = 3 # stan n cores
 )
 
+# Currently giving weird values -- check prior specification and values
 m_exppow_multiplier = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
   disp_mod = "exppow", # 2Dt or exppow
   err_mod = "pois", # pois only currently
   fecund_mod = "multiplier",
-  n_warmup = 400, # stan warmup iter
-  n_iter = 800, # stan iter, includes warmup
-  n_chains = 2, # stan n chains
-  n_cores = 2 # stan n cores
+  n_warmup = 500, # stan warmup iter
+  n_iter = 1500, # stan iter, includes warmup
+  n_chains = 3, # stan n chains
+  n_cores = 3 # stan n cores
 )
+
+# lnorm currently not working!
+m_lnorm_multiplier = fit_stan_model_fecund(
+  dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  disp_mod = "lognormal", # 2Dt, exppow, lognormal
+  err_mod = "pois", # pois only currently
+  fecund_mod = "multiplier",
+  n_warmup = 500, # stan warmup iter
+  n_iter = 1500, # stan iter, includes warmup
+  n_chains = 3, # stan n chains
+  n_cores = 3 # stan n cores
+)
+
+# Compare kernels 
+loo(m_2Dt_multiplier)
+loo(m_exppow_multiplier) # way better 
 
 #### NOTE: Current run uses more informative priors on dispersal parameters and slighly more informative prior on fecundity model multiplier parameter b. 
 
