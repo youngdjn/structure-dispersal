@@ -2,8 +2,8 @@ model,param,prior_mean,prior_sd
 2Dt,p_alpha,9,0.5
 2Dt,p_inv_k_real,1,1
 2Dt,p_b1_ht, -2.5, 2.5
-exppow,p_alpha,3,1
-exppow,p_kappa,3,3
+exppow,p_alpha,4,0.5
+exppow,p_kappa,30,30
 invpow,p_alpha,3,1
 invpow,p_k_real,0,1
 lognorm,p_alpha,5,0.5
