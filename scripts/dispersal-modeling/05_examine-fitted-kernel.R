@@ -40,6 +40,14 @@ fitted_exppow_multiplier = get_fitted_kernel(
 )
 
 species = "PIPJ"
+fitted_exppow_multiplier_exponent = get_fitted_kernel(
+  dataset_name = paste0(site_name, "-", species),
+  disp_mod = "exppow",
+  err_mod = "pois", 
+  fecund_mod = "multiplier_exponent"
+)
+
+species = "PIPJ"
 fitted_2Dt_PIPJ_multiplier_exponent = get_fitted_kernel(
   dataset_name = paste0(site_name, "-", species),
   disp_mod = "2Dt",
@@ -51,7 +59,7 @@ fitted_2Dt_PIPJ_multiplier_exponent = get_fitted_kernel(
 
 model = fitted_2Dt_PIPJ_multiplier_exponent
 model = fitted_2Dt_PIPJ_multiplier
-model = fitted_exppow_multiplier
+model = fitted_exppow_multiplier_exponent
 
 ggplot(data = model$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3, color = NA) +
@@ -81,9 +89,8 @@ ggplot(data = model$fecundity, aes(x = tree_size, y = fit, color = fecund_mod, f
 
 
 # check convergence of the model by plotting the chains 
-stan_trace(fitted_2Dt$model)
-fitted_2Dt$model
-summary(fitted_2Dt$model)
+stan_trace(model$model)
+summary(model$model)
 
 
 ## Compare the 2Dt and exppow models
@@ -127,8 +134,8 @@ ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels",
 site_name = "delta"
 species = "PIPJ"
 dataset_name = paste0(site_name, "-", species)
-disp_mod = "exppow"
-err_mod = "pois_multiplier"
+disp_mod = "pois"
+err_mod = "exppow_multiplier_exponent"
 # Note to specify a particular form of the fecundity model, we can tack extra text onto the "err_mod" parameter -- for example, "pois_multiplier_exponent". To select a model without the height difference component, also append "_noheight".
 
 load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
