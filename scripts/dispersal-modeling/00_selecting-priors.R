@@ -78,9 +78,9 @@ calc_kern_exppow_priors = function(a, k, r) {
   kern
 }
 
-a = 100 # a shouldn't go below about 20 or too much above about 500
-k = 3 # k shouldn't go below about 0.5 or above about 5 
-r = 0:400
+a = exp(1.34) # a shouldn't go below about ~20 or too much above about ~200
+k =  0.46 # k shouldn't go below about 0.5 or above about 1.5 (see https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2745.12666) 
+r = 0:100
 kern = calc_kern_exppow_priors(a = a, k = k, r = r)
 kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
 # plot the result
@@ -89,12 +89,14 @@ ggplot(kern_df_1, aes(x=r, y=kern)) +
 
 # Prior ideas for a: a = exp(alpha - kappa) alpha ~ dnorm(3, 1)
 # Prior ideas for kappa = 1/k: inv_k_real ~ dgamma(3, 3)
+a = exp(alpha - kappa)
+k = 1/kappa; 
+
+curve(dgamma(x,30,30), from=0, to = 2)
+
 exp(3)
-
-
-inv_k_real = 0
-(1 + exp(-inv_k_real))/2
-
+exp(4)
+exp(5)
 
 #### Lognormal dispersal model ####
 
