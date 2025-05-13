@@ -55,7 +55,7 @@ transformed parameters {
     // for each plot, get the vector of kernel values (seed contribution of each tree), summed across all trees (with sum function)
     for(i in 1:n_seedling_plots){
 
-          mu[i] = sum( disp_prob(k, a, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i])) .* // Schurr's generalized exponential kernel
+          mu[i] = sum( disp_prob(k, a, n_overstory_trees[i], segment(dist_vector, pos[i], n_overstory_trees[i])) .* // Schurr's generalized exponential kernel
             q_fun(b, zeta, n_overstory_trees[i], segment(overstory_tree_size, pos[i], n_overstory_trees[i]) ) ) * // seeds per tree based on size
             seedling_plot_area; // plot area
 
