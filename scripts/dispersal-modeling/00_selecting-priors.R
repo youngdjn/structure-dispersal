@@ -74,18 +74,41 @@ inv_k_real ~ dnorm(1, 1)
 #### Exponential dispersal model ####
 
 calc_kern_exppow_priors = function(a, k, r) {
-  kern = exp(-r/a)^k * k / (2 * pi * a^2 * gamma(2/k))
+  kern = exp(-(r/a))^k * k / (2 * pi * a^2 * gamma(2/k))
   kern
 }
 
-a = exp(1.34) # a shouldn't go below about ~20 or too much above about ~200
-k =  0.46 # k shouldn't go below about 0.5 or above about 1.5 (see https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2745.12666) 
-r = 0:100
+exppow_mean = function(a, k) { 
+  return(a * gamma(3/k) / gamma(2/k))  
+}
+
+
+a = 15 # a shouldn't go below about ~20 or too much above about ~200
+k =  1 # If we think dispersal is heavy tailed, we shouldn't let k get too far above 1 (which is the exponential kernel). If we think it's closer to exp or gaussian (lighter tailed) we shouldn't let it get above 1. 
+
+# IDEA: Alternatively we could reparameterize and put a prior on the mean distance 
+# e.g. mean_dist ~ dgamma(20, 0.5); k ~ dgamma(35, 40)
+
+# Calculate mean dispersal distance 
+exppow_mean(a, k)
+
+# I think we shouldn't let the mean distance get too much above 50 meters. 
+# We probably shouldn't let the tails get much above 1 since we believe the dispersal kernels are heavy tailed. So if we start by constraining k to between about 0.6 and 1, this will constrain a to <40 if k = 1, and <10 if k = 0.6.
+# This could be a normal prior with mean 
+
+# plot kernel 
+r = 0:500
 kern = calc_kern_exppow_priors(a = a, k = k, r = r)
 kern_df_1 = data.frame(r = r, kern = kern, a = a, k = k)
-# plot the result
+# plot the resulting disp kern 
 ggplot(kern_df_1, aes(x=r, y=kern)) +
-  geom_line() + theme_bw() 
+  geom_line() + theme_bw() + expand_limits(y=0)
+
+
+# plot the fecundity model 
+b = exp(2.55)
+tree_size = 10:40
+plot(tree_size, b*tree_size, type = "l")
 
 # Prior ideas for a: a = exp(alpha - kappa) alpha ~ dnorm(3, 1)
 # Prior ideas for kappa = 1/k: inv_k_real ~ dgamma(3, 3)
