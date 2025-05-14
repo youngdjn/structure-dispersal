@@ -16,7 +16,7 @@ disp_prob <- function(k, a, n_overstory_trees, dist_vector) {
 }
   
 # Calculate expected/fitted seedlings per plot 
-calc_mu <- function(k, a, b, n_overstoy_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) {
+calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) {
   n_seedling_plots = length(n_overstory_trees) 
   for(i in 1:n_seedling_plots){
       segment_start = pos[i]
@@ -31,14 +31,14 @@ calc_mu <- function(k, a, b, n_overstoy_trees, dist_vector, overstory_tree_size,
 }
 
 # Function to get the negative log likelihood for a set of parameter values
-calc_negloglik <- function(k, a, b, n_overstoy_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
+calc_negloglik <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
   mu = calc_mu(k, a, b, n_overstoy_trees, dist_vector, overstory_tree_size, pos) 
-  negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE)))
+  negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE))
 }
 
 
 ### Function to fit the model using optim
-fit_model_optim <- function(startpars, n_overstoy_trees = n_overstoy_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+fit_model_optim <- function(startpars, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
 {
   #ML fitting of an inverse model with source and path effects
   #ARGUMENTS:
@@ -71,7 +71,7 @@ fit_model_optim <- function(startpars, n_overstoy_trees = n_overstoy_trees, dist
   a.pars <- startpars$p
   pars.init <- c(b, k, a)
   
-  fit <- optim(pars.init, calc_negloglik, n_overstoy_trees = n_overstoy_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+  fit <- optim(pars.init, calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -79,7 +79,7 @@ fit_model_optim <- function(startpars, n_overstoy_trees = n_overstoy_trees, dist
                   k=fit$par[2],
                   a=fit$par[3])
 
-  fv <- calc_mu(b = fit$par[1], k = fit$par[2], a = fit$par[3], n_overstoy_trees = n_overstoy_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+  fv <- calc_mu(b = fit$par[1], k = fit$par[2], a = fit$par[3], n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
   
   res<-list(estimates=estimates,negloglik=fit$value,fitted.values=fv,call=cl,
             counts=fit$counts,convergence=fit$convergence,message=fit$message)
