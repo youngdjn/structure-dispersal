@@ -58,7 +58,7 @@ fitted_2Dt_PIPJ_multiplier_exponent = get_fitted_kernel(
 # Plot the dispersal kernel for the fitted model
 
 model = fitted_2Dt_PIPJ_multiplier_exponent
-model = fitted_2Dt_PIPJ_multiplier
+model = fitted_2Dt_multiplier
 model = fitted_exppow_multiplier_exponent
 
 ggplot(data = model$kernel, aes(x = r, y = fit, color = disp_mod, fill = disp_mod)) +
@@ -134,8 +134,8 @@ ggsave(file.path(data_dir, "figures/fitted-dispersal-kernels",
 site_name = "delta"
 species = "PIPJ"
 dataset_name = paste0(site_name, "-", species)
-disp_mod = "pois"
-err_mod = "exppow_multiplier_exponent"
+disp_mod = "2Dt"
+err_mod = "pois_multiplier"
 # Note to specify a particular form of the fecundity model, we can tack extra text onto the "err_mod" parameter -- for example, "pois_multiplier_exponent". To select a model without the height difference component, also append "_noheight".
 
 load_fit_and_plot(dataset_name = dataset_name, disp_mod = disp_mod, err_mod = err_mod, plot_size_ha = plot_size_ha, ylim = c(NA, NA))
