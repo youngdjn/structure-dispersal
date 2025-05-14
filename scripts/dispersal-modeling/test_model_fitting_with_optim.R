@@ -1,16 +1,16 @@
 # Implement ML fitting of inverse dispersal model using optim 
 # Following example from Frank Schurr 
 
-# Start with an example simple model (exppow or 2Dt with one-parameter fecundity function)
+# Start with an example simple model (exppow, with a one-parameter fecundity function)
 
 # Fecundity function (vectorized calculation for a single plot)
-q_fun <- function(b, n_overstory_trees, overstory_tree_size) { 
+q_fun <- function(b, overstory_tree_size) { 
   q = b * overstory_tree_size # fecundity equation
   return(q)
 }
 
 # Dispersal kernel function (vectorized calculation for a single plot)
-disp_prob <- function(k, a, n_overstory_trees, dist_vector) { 
+disp_prob <- function(k, a, dist_vector) { 
   kernel_prob = exp(-(dist_vector/a)^k)*k / (2 * pi * a^2 * gamma(2/k)) # apply exponential power kernel for all trees associated with a given plot
   return(kernel_prob)
 }
@@ -22,10 +22,8 @@ calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size
   for(i in 1:n_seedling_plots){
       segment_start = pos[i]
       segment_end = pos[i] + n_overstory_trees[i] - 1
-      mu[i] = sum( disp_prob(k, a, n_overstory_trees[i], 
-                dist_vector[segment_start:segment_end]) * 
-                q_fun(b, n_overstory_trees[i], 
-                  overstory_tree_size[segment_start:segment_end]) * 
+      mu[i] = sum( disp_prob(k, a, dist_vector[segment_start:segment_end]) * 
+                q_fun(b, overstory_tree_size[segment_start:segment_end]) * 
                 seedling_plot_area) # plot area
      }
   return(mu)
@@ -53,9 +51,7 @@ fit_model_optim <- function(startpars, n_overstory_trees = n_overstory_trees, di
   #
   # other variables are the overstory tree sizes, distances from each tree to each plot, in sparse/ragged form, pos which points to the starting point of each plot's data in the vectors, plus the number of trees in each plot.
   #
-  #
-  #
-  #VALUE: an object of class "him" which is a list with components
+  #VALUE: list with components:
   #
   #estimates: a named list of maximum likelihood parameter estimates,
   #           for each component parameters are in the same order as in startpars
@@ -76,7 +72,7 @@ fit_model_optim <- function(startpars, n_overstory_trees = n_overstory_trees, di
   a.pars <- startpars$p
   pars.init <- c(b, k, a)
   
-  fit <- optim(pars.init, calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+  fit <- optim(pars.init, method = "SANN", calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # Use simulated annealing - slow but thorough
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -99,35 +95,35 @@ get_disp_data <- function(dataset_name) # corresponding data files in datadir/pr
   prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
   
   seedling_plot_area = read_file(file.path(prepped_data_dir, "plot-area.txt")) |> 
-    as.numeric()
+      as.numeric()
   dist_vector = read_lines(file.path(prepped_data_dir, "dist-vector.txt")) |>
-    as.numeric() |>
-    as.vector()
+      as.numeric() |>
+      as.vector()
   overstory_treesize_vector = read_lines(file.path(prepped_data_dir,
-    "overstory-treesize-vector.txt")) |>
-    as.numeric() |>
-    as.vector()
+      "overstory-treesize-vector.txt")) |>
+      as.numeric() |>
+      as.vector()
   seedling_counts = read_lines(file.path(prepped_data_dir, "seedling-counts.txt")) |>
-    as.numeric() |>
-    as.vector()
+      as.numeric() |>
+      as.vector()
   n_overstory_trees = read_lines(file.path(prepped_data_dir, "n-overstory-trees.txt")) |>
-    as.numeric() |>
-    as.vector()
+      as.numeric() |>
+      as.vector()
   pos = read_lines(file.path(prepped_data_dir, "pos.txt")) |>
-    as.numeric() |>
-    as.vector()
+      as.numeric() |>
+      as.vector()
   
   ## Compile data and priors into list for Stan
   
   data_list <- lst(
-    seedling_plot_area,
-    n_overstory_trees,
-    n_seedling_plots = length(seedling_counts),
-    overstory_tree_size = overstory_treesize_vector,
-    seedling_counts,
-    dist_vector,
-    obs = length(dist_vector),
-    pos
+      seedling_plot_area,
+      n_overstory_trees,
+      n_seedling_plots = length(seedling_counts),
+      overstory_tree_size = overstory_treesize_vector,
+      seedling_counts,
+      dist_vector,
+      obs = length(dist_vector),
+      pos
   )
 
   # Check for missing data
@@ -138,7 +134,7 @@ get_disp_data <- function(dataset_name) # corresponding data files in datadir/pr
 
 #### Test it out 
 
-disp_data = get_disp_data(dataset_name = "delta-ALL")
+disp_data = get_disp_data(dataset_name = "delta-PINES")
 
 calc_negloglik(pars = pars.init, 
     n_overstory_trees = disp_data$n_overstory_trees, 
@@ -148,9 +144,24 @@ calc_negloglik(pars = pars.init,
     seedling_counts = disp_data$seedling_counts, 
     seedling_plot_area = disp_data$seedling_plot_area)
 
-startpars = list(b = 1, k = 1.5, a = 60)
+startpars = list(b = 1, k = 1, a = 20)
 
-fit_model_optim(startpars, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+m = fit_model_optim(startpars, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
 
-# Wants to run away to very high values of fecundity and low values of dispersal. 
+m$estimates
+m$negloglik
 
+# Using simulated annealing works to fit the model!
+
+# plot fitted vs observed 
+obspred_data <- data.frame(fitted = m$fitted.values, observed = disp_data$seedling_counts)
+ggplot(obspred_data, aes(x = log(fitted), y = log(observed+0.5))) + geom_point()
+
+# plot dispersal kernel based on fitted parameters
+kernel_plot_data <- data.frame(Distance = 1:500, Probability = disp_prob(k = m$estimates$k, a = m$estimates$a, dist_vector = 1:500))
+ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
+
+## Next steps: 
+# Visualize likelihood surface 
+# Check that model can recover params from simulation 
+# Figure out how to bootstrap or estimate parameter uncertainties 
