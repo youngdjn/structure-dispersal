@@ -143,10 +143,10 @@ library(tidyverse)
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
 
-disp_data = get_disp_data(dataset_name = "delta-PINES")
+disp_data = get_disp_data(dataset_name = "delta-ALL")
 
 # check that the model converges from dispersed initial values 
-startpars1 = list(k = 1, a = 100)
+startpars1 = list(b = 1, k = 1, a = 100)
 startpars2 = list(b = 10, k = 0.2, a = 10)
 
 
@@ -160,7 +160,7 @@ calc_negloglik(pars = c(startpars2$b, startpars2$k, startpars2$a),
                seedling_plot_area = disp_data$seedling_plot_area)
 # It's sensitive to extreme values of k and a (gives NLL = Inf)
 
-m = fit_model_optim(startpars1, b = 1,
+m1 = fit_model_optim(startpars1, 
                     n_overstory_trees = disp_data$n_overstory_trees, 
                     dist_vector = disp_data$dist_vector, 
                     overstory_tree_size = disp_data$overstory_tree_size, 
@@ -193,31 +193,38 @@ kernel_plot_data <- data.frame(Distance = 1:500, Probability = disp_prob(k = m$e
 ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
 
 # visualize likelihood surface 
-bvals = 10
-kvals = seq(0.3, 0.8, by = 0.05)
-avals = seq(10, 120, by = 5)
+bvals = 5
+kvals = seq(0.3, 0.7, by = 0.05)
+avals = seq(5, 120, by = 5)
 parameter_test_set <- expand.grid(bvals, kvals, avals) 
 names(parameter_test_set) = c("b", "k", "a")
 head(parameter_test_set)
 fn_to_apply_negloglik <- function(param_test_vals, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
   pars = c(param_test_vals[1], param_test_vals[2], param_test_vals[3])
-  nll = calc_negloglik(pars = pars, 
+  nll = calc_negloglik(pars = pars, n_overstory_trees, 
+                       dist_vector, overstory_tree_size, pos, 
+                       seedling_counts, seedling_plot_area)
+  return(nll)
+}
+
+negloglikvals <- apply(parameter_test_set, 1, fn_to_apply_negloglik, 
                        n_overstory_trees = disp_data$n_overstory_trees, 
                        dist_vector = disp_data$dist_vector, 
                        overstory_tree_size = disp_data$overstory_tree_size, 
                        pos = disp_data$pos, 
                        seedling_counts = disp_data$seedling_counts, 
                        seedling_plot_area = disp_data$seedling_plot_area)
-  return(nll)
-}
-negloglikvals <- apply(parameter_test_set, 1, fn_to_apply_negloglik)
 lik_surface_data <- cbind(parameter_test_set, negloglikvals)
 head(lik_surface_data)
 hist(negloglikvals)
 
+# Where is the maximum? 
+lik_surface_data[which.max(lik_surface_data$negloglikvals),]
+
 # plot a 2D likelihood surface using negloglikvals data
-ggplot(lik_surface_data, aes(x = a, y = k)) + 
-  geom_tile(aes(fill = negloglikvals)) + 
+ggplot(lik_surface_data, aes(x = a, y = k, z = negloglikvals)) + 
+  #geom_tile(aes(fill = log(negloglikvals))) + 
+  geom_contour() + 
   scale_fill_viridis_c() + 
   theme_minimal() + 
   labs(title = "Likelihood surface", x = "a", y = "k") +
