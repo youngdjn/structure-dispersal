@@ -30,10 +30,10 @@ calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size
 }
 
 # Function to get the negative log likelihood for a set of parameter values
-calc_negloglik <- function(pars, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
-  #b = pars[1]
-  k = pars[1]
-  a = pars[2]
+calc_negloglik <- function(pars, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
+  b = pars[1]
+  k = pars[2]
+  a = pars[3]
   mu = calc_mu(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) 
   negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE))
   return(negloglik)
@@ -67,14 +67,14 @@ fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overst
   
   cl <- match.call()
 
-  #b <- startpars$b
+  b <- startpars$b
   k <- startpars$k
   a <- startpars$a
   
   # As an experiment, hard-code a "reasonable value for b 
-  pars.init <- c(k, a) # c(b, k, a)
+  pars.init <- c(b, k, a) 
   
-  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, b = b, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # Use simulated annealing - slow but thorough
+  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # Use simulated annealing - slow but thorough
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -143,7 +143,7 @@ library(tidyverse)
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
 
-disp_data = get_disp_data(dataset_name = "delta-ALL")
+disp_data = get_disp_data(dataset_name = "delta-PINES")
 
 # check that the model converges from dispersed initial values 
 startpars1 = list(k = 1, a = 100)
@@ -151,7 +151,7 @@ startpars2 = list(b = 10, k = 0.2, a = 10)
 
 
 # Check likelihood calculation
-calc_negloglik(pars = c(startpars2$k, startpars2$a), b = startpars$b,
+calc_negloglik(pars = c(startpars2$b, startpars2$k, startpars2$a), 
                n_overstory_trees = disp_data$n_overstory_trees, 
                dist_vector = disp_data$dist_vector, 
                overstory_tree_size = disp_data$overstory_tree_size, 
@@ -160,7 +160,7 @@ calc_negloglik(pars = c(startpars2$k, startpars2$a), b = startpars$b,
                seedling_plot_area = disp_data$seedling_plot_area)
 # It's sensitive to extreme values of k and a (gives NLL = Inf)
 
-m1 = fit_model_optim(startpars1, b = 5,
+m = fit_model_optim(startpars1, b = 1,
                     n_overstory_trees = disp_data$n_overstory_trees, 
                     dist_vector = disp_data$dist_vector, 
                     overstory_tree_size = disp_data$overstory_tree_size, 
