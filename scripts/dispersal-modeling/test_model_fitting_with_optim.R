@@ -1,5 +1,5 @@
-# Implement ML fitting of inverse dispersal model using optim 
-# Following example from Frank Schurr 
+# Implement ML fitting of inverse dispersal model. 
+# Following example from Frank Schurr. 
 
 # Start with an example simple model (exppow, with a one-parameter fecundity function)
 
@@ -30,10 +30,10 @@ calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size
 }
 
 # Function to get the negative log likelihood for a set of parameter values
-calc_negloglik <- function(pars, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
-  b = pars[1]
-  k = pars[2]
-  a = pars[3]
+calc_negloglik <- function(pars, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
+  #b = pars[1]
+  k = pars[1]
+  a = pars[2]
   mu = calc_mu(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) 
   negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE))
   return(negloglik)
@@ -41,7 +41,7 @@ calc_negloglik <- function(pars, n_overstory_trees, dist_vector, overstory_tree_
 
 
 ### Function to fit the model using optim
-fit_model_optim <- function(startpars, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area)
 {
   #ML fitting of an inverse model with source and path effects
   #ARGUMENTS:
@@ -67,12 +67,14 @@ fit_model_optim <- function(startpars, n_overstory_trees = n_overstory_trees, di
   
   cl <- match.call()
 
-  b.pars <- startpars$b
-  k.pars <- startpars$u
-  a.pars <- startpars$p
-  pars.init <- c(b, k, a)
+  #b <- startpars$b
+  k <- startpars$k
+  a <- startpars$a
   
-  fit <- optim(pars.init, method = "SANN", calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # Use simulated annealing - slow but thorough
+  # As an experiment, hard-code a "reasonable value for b 
+  pars.init <- c(k, a) # c(b, k, a)
+  
+  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, b = b, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # Use simulated annealing - slow but thorough
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -134,22 +136,51 @@ get_disp_data <- function(dataset_name) # corresponding data files in datadir/pr
 
 #### Test it out 
 
-disp_data = get_disp_data(dataset_name = "delta-PINES")
+library(here)
+library(tidyverse)
 
-calc_negloglik(pars = pars.init, 
-    n_overstory_trees = disp_data$n_overstory_trees, 
-    dist_vector = disp_data$dist_vector, 
-    overstory_tree_size = disp_data$overstory_tree_size, 
-    pos = disp_data$pos, 
-    seedling_counts = disp_data$seedling_counts, 
-    seedling_plot_area = disp_data$seedling_plot_area)
+# Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
+if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
-startpars = list(b = 1, k = 1, a = 20)
 
-m = fit_model_optim(startpars, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area)
+disp_data = get_disp_data(dataset_name = "delta-ALL")
 
-m$estimates
-m$negloglik
+# check that the model converges from dispersed initial values 
+startpars1 = list(k = 1, a = 100)
+startpars2 = list(b = 10, k = 0.2, a = 10)
+
+
+# Check likelihood calculation
+calc_negloglik(pars = c(startpars2$k, startpars2$a), b = startpars$b,
+               n_overstory_trees = disp_data$n_overstory_trees, 
+               dist_vector = disp_data$dist_vector, 
+               overstory_tree_size = disp_data$overstory_tree_size, 
+               pos = disp_data$pos, 
+               seedling_counts = disp_data$seedling_counts, 
+               seedling_plot_area = disp_data$seedling_plot_area)
+# It's sensitive to extreme values of k and a (gives NLL = Inf)
+
+m1 = fit_model_optim(startpars1, b = 5,
+                    n_overstory_trees = disp_data$n_overstory_trees, 
+                    dist_vector = disp_data$dist_vector, 
+                    overstory_tree_size = disp_data$overstory_tree_size, 
+                    pos = disp_data$pos, 
+                    seedling_counts = disp_data$seedling_counts, 
+                    seedling_plot_area = disp_data$seedling_plot_area)
+
+m2 = fit_model_optim(startpars2, 
+                     n_overstory_trees = disp_data$n_overstory_trees, 
+                     dist_vector = disp_data$dist_vector, 
+                     overstory_tree_size = disp_data$overstory_tree_size, 
+                     pos = disp_data$pos, 
+                     seedling_counts = disp_data$seedling_counts, 
+                     seedling_plot_area = disp_data$seedling_plot_area)
+
+m1$estimates
+m1$negloglik
+
+m2$estimates
+m2$negloglik
 
 # Using simulated annealing works to fit the model!
 
@@ -161,7 +192,49 @@ ggplot(obspred_data, aes(x = log(fitted), y = log(observed+0.5))) + geom_point()
 kernel_plot_data <- data.frame(Distance = 1:500, Probability = disp_prob(k = m$estimates$k, a = m$estimates$a, dist_vector = 1:500))
 ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
 
+# visualize likelihood surface 
+bvals = 10
+kvals = seq(0.3, 0.8, by = 0.05)
+avals = seq(10, 120, by = 5)
+parameter_test_set <- expand.grid(bvals, kvals, avals) 
+names(parameter_test_set) = c("b", "k", "a")
+head(parameter_test_set)
+fn_to_apply_negloglik <- function(param_test_vals, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
+  pars = c(param_test_vals[1], param_test_vals[2], param_test_vals[3])
+  nll = calc_negloglik(pars = pars, 
+                       n_overstory_trees = disp_data$n_overstory_trees, 
+                       dist_vector = disp_data$dist_vector, 
+                       overstory_tree_size = disp_data$overstory_tree_size, 
+                       pos = disp_data$pos, 
+                       seedling_counts = disp_data$seedling_counts, 
+                       seedling_plot_area = disp_data$seedling_plot_area)
+  return(nll)
+}
+negloglikvals <- apply(parameter_test_set, 1, fn_to_apply_negloglik)
+lik_surface_data <- cbind(parameter_test_set, negloglikvals)
+head(lik_surface_data)
+hist(negloglikvals)
+
+# plot a 2D likelihood surface using negloglikvals data
+ggplot(lik_surface_data, aes(x = a, y = k)) + 
+  geom_tile(aes(fill = negloglikvals)) + 
+  scale_fill_viridis_c() + 
+  theme_minimal() + 
+  labs(title = "Likelihood surface", x = "a", y = "k") +
+  theme(legend.position = "bottom") +
+  guides(fill = guide_colorbar(title = "Negative log likelihood"))
+
+ggplot(lik_surface_data, aes(x = b, y = k)) + 
+  geom_tile(aes(fill = negloglikvals)) + 
+  scale_fill_viridis_c() + 
+  theme_minimal() + 
+  labs(title = "Likelihood surface", x = "b", y = "k") +
+  theme(legend.position = "bottom") +
+  guides(fill = guide_colorbar(title = "Negative log likelihood"))
+
+
 ## Next steps: 
-# Visualize likelihood surface 
-# Check that model can recover params from simulation 
-# Figure out how to bootstrap or estimate parameter uncertainties 
+# Visualize likelihood surface. DONE - shows a ridge as expected based on a / k correlation. 
+# The model runs away to very unrealistic and extreme parameter combinations. TRY keeping b fixed. 
+# Check that model can recover params from simulation. 
+# Figure out how to bootstrap parameter uncertainties. Schurr did it by resampling the data set -- which requires us to go back to the tree data and re-generate the ragged arrays each time. 
