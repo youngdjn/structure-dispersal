@@ -74,7 +74,7 @@ fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overst
   # As an experiment, hard-code a "reasonable value for b 
   pars.init <- c(b, k, a) 
   
-  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # Use simulated annealing - slow but thorough
+#  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) 
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -245,3 +245,4 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 # The model runs away to very unrealistic and extreme parameter combinations. TRY keeping b fixed. 
 # Check that model can recover params from simulation. 
 # Figure out how to bootstrap parameter uncertainties. Schurr did it by resampling the data set -- which requires us to go back to the tree data and re-generate the ragged arrays each time. 
+
