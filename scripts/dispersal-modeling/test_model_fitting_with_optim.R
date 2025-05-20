@@ -10,10 +10,18 @@ q_fun <- function(b, overstory_tree_size) {
 }
 
 # Dispersal kernel function (vectorized calculation for a single plot)
-disp_prob <- function(k, a, dist_vector) { 
+
+# EXPPOW kernel
+disp_prob <- function(k, a, dist_vector) { # 
   kernel_prob = exp(-(dist_vector/a)^k)*k / (2 * pi * a^2 * gamma(2/k)) # apply exponential power kernel for all trees associated with a given plot
   return(kernel_prob)
 }
+
+# 2Dt kernel
+#disp_prob <- function(k, a, dist_vector) { # 
+# kernel_prob = (k / (pi * a)) * ((1 + dist_vector^2) / a)^(-1-k) # apply 2Dt kernel to the distances for all trees associated with a given plot 
+#  return(kernel_prob)
+#}
   
 # Calculate expected/fitted seedlings per plot 
 calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) {
@@ -74,7 +82,7 @@ fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overst
   # As an experiment, hard-code a "reasonable value for b 
   pars.init <- c(b, k, a) 
   
-#  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) 
+  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) 
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -115,7 +123,7 @@ get_disp_data <- function(dataset_name) # corresponding data files in datadir/pr
       as.numeric() |>
       as.vector()
   
-  ## Compile data and priors into list for Stan
+  ## Compile data and priors into list for model fitting 
   
   data_list <- lst(
       seedling_plot_area,
@@ -142,16 +150,31 @@ library(tidyverse)
 # Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
+# Load dataset from one fire 
+disp_data = get_disp_data(dataset_name = "delta-PINES")
 
-disp_data = get_disp_data(dataset_name = "delta-ALL")
+# Or instead load a simulated dataset 
+seedling_plot_area = 201
+n_seedling_plots = n_plots
+
+
+
+disp_data = lst(seedling_plot_area,
+                      n_overstory_trees,
+                      n_seedling_plots,
+                      overstory_tree_size,
+                      seedling_counts,
+                      dist_vector,
+                      obs = length(dist_vector),
+                      pos)
 
 # check that the model converges from dispersed initial values 
-startpars1 = list(b = 1, k = 1, a = 100)
+startpars1 = list(b = 10, k = 1, a = 40)
 startpars2 = list(b = 10, k = 0.2, a = 10)
 
 
 # Check likelihood calculation
-calc_negloglik(pars = c(startpars2$b, startpars2$k, startpars2$a), 
+calc_negloglik(pars = c(startpars1$b, startpars1$k, startpars1$a), 
                n_overstory_trees = disp_data$n_overstory_trees, 
                dist_vector = disp_data$dist_vector, 
                overstory_tree_size = disp_data$overstory_tree_size, 
@@ -194,7 +217,7 @@ ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
 
 # visualize likelihood surface 
 bvals = 5
-kvals = seq(0.3, 0.7, by = 0.05)
+kvals = seq(1, 2, by = 0.05)
 avals = seq(5, 120, by = 5)
 parameter_test_set <- expand.grid(bvals, kvals, avals) 
 names(parameter_test_set) = c("b", "k", "a")
@@ -242,7 +265,10 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 
 ## Next steps: 
 # Visualize likelihood surface. DONE - shows a ridge as expected based on a / k correlation. 
-# The model runs away to very unrealistic and extreme parameter combinations. TRY keeping b fixed. 
-# Check that model can recover params from simulation. 
-# Figure out how to bootstrap parameter uncertainties. Schurr did it by resampling the data set -- which requires us to go back to the tree data and re-generate the ragged arrays each time. 
+# The model runs away to very unrealistic and extreme parameter combinations. TRY keeping b fixed. DONE - didn't help 
+# Check that model can recover params from simulation. DONE -- yes it can! 
+
+# Since simulations work to recover parameters, see if any of the data sets for the other 3 fires (other than Delta) can converge to reasonable parameter values
+
+
 
