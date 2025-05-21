@@ -27,7 +27,7 @@ tree_window <- owin(c(tree_x_min, tree_x_max), c(tree_y_min, tree_y_max))
 # Use Thomas process for fractal-style clustering
 # Adjust kappa, scale, and mu to tune clustering intensity
 set.seed(123)
-n_trees = 500
+n_trees = 200
 tree_pp <- rThomas(kappa = 0.02, scale = 20, mu = 10, win = tree_window)
 
 # Take only n_trees points if more were generated
@@ -39,7 +39,7 @@ tree_points <- data.frame(
 )
 
 # Generate plot locations
-n_plots <- 200
+n_plots <- 100
 
 set.seed(456)
 seedling_plots <- data.frame(
@@ -51,7 +51,7 @@ seedling_plots <- data.frame(
 
 ggplot() +
   geom_point(data = tree_points, aes(x = x, y = y), color = "green", size = 2) +
-  geom_point(data = seedling_plots, aes(x = x, y = y), color = "red", size = 3) +
+  geom_point(data = seedling_plots, aes(x = x, y = y), color = "blue", size = 3) +
   coord_fixed() +
   xlim(0, domain_size) +
   ylim(0, domain_size) +
@@ -103,7 +103,8 @@ simulate_seed_rain <- function(tree_df, plot_df,
   kernel_matrix <- exp_power_kernel(dist_matrix, a, k)
   
   # Fecundity vector
-  fecundity <- b * tree_df$height
+  mean_fecundity <- b * tree_df$height
+  fecundity <- rnorm(n = length(mean_fecundity), mean = mean_fecundity, sd = mean(mean_fecundity)/10)
   
   # Expected seeds per plot (scaled by plot area)
   expected <- colSums(kernel_matrix * fecundity) * plot_area_m2
@@ -127,7 +128,7 @@ result_df <- simulate_seed_rain(
   tree_df = tree_points,
   plot_df = seedling_plots,
   a = 30,     # scale
-  k = 1,    # shape
+  k = 0.5,    # shape
   b = 10,     # fecundity coefficient
   plot_area_m2 = 201  # size of each plot in m²
 )
