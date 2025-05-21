@@ -35,7 +35,7 @@ m_exppow_multiplier = fit_stan_model_fecund(
   n_cores = 3 # stan n cores
 )
 
-m_exppow_multiplier = fit_stan_model_fecund(
+m_exppow_multiplier_exponent = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
   disp_mod = "exppow", # 2Dt or exppow
   err_mod = "pois", # pois only currently
