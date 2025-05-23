@@ -8,6 +8,7 @@ library(here)
 
 
 fit_stan_model = function(dataset_name, # which dataset to model (corresponding data files in datadir/prepped-for-stan/{dataset_name})
+                          data_dir, # base level folder for datafiles
                           disp_mod, # 2Dt or exppow
                           err_mod, # pois only currently
                           n_warmup, # stan warmup iter
@@ -108,6 +109,7 @@ fit_stan_model = function(dataset_name, # which dataset to model (corresponding 
 #### Modified function by Andrew that allows specifying the fecundity model ####
 
 fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresponding data files in datadir/prepped-for-stan/{dataset_name})
+                          data_dir = data_dir, # base level folder for datafiles
                           disp_mod, # 2Dt or exppow or lognormal
                           err_mod, # pois only currently
                           fecund_mod, # fecundity model ("multplier" or "multiplier_exponent")
@@ -204,3 +206,4 @@ fit_stan_model_fecund = function(dataset_name, # which dataset to model (corresp
   
   return(res)
 }
+
