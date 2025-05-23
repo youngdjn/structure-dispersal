@@ -8,7 +8,9 @@ prep_data = function(dataset_name, # site-species
                      seedling_plot_filepath, # relative to `datadir`
                      seedling_plot_crs,
                      target_crs, # target CRS (to project the raw data sources to)
-                     seedling_plot_area # area of the plot in sq m
+                     seedling_plot_area, # area of the plot in sq m
+                     tree_distance_cutoff = 300 # ignore trees farther than this from a plot
+                     
 ) {
   ### Load the overstory tree and seedling data for the specified site
   overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) |>
@@ -87,12 +89,12 @@ prep_data = function(dataset_name, # site-species
 
   r <- sqrt(dist_sq)
 
-  # Any distances > 300  get set to NA
-  r_cutoff = ifelse(r > 300, 0, r)
+  # Any distances > tree_distance_cutoff  get set to NA
+  r_cutoff = ifelse(r > tree_distance_cutoff, 0, r)
   r_cutoff = ifelse(r_cutoff == 0, NA, r)
 
-  ## Add one dummy tree at 300 m distance to each plot, so there are no plots with zero trees
-  r_cutoff = cbind(r_cutoff, rep(300, nrow(r_cutoff)))
+  ## Add one dummy tree at the tree_distance_cutoff distance to each plot, so there are no plots with zero trees
+  r_cutoff = cbind(r_cutoff, rep(tree_distance_cutoff, nrow(r_cutoff)))
 
   # -- Prepare the objects needed to pass a "ragged array" of pairwise distances to stan
   # number of non-NA values (overstory tree distances) per row (i.e. per seedling plot)
@@ -105,7 +107,7 @@ prep_data = function(dataset_name, # site-species
   ### Calc elevation diffrence (treetop to plot) matrix
   elev_diff = -outer(seedling_plots$elevation, overstory_trees$elevation_top, "-")
 
-  ## Add one dummy tree at 300 m distance with 0 height diff, so there are no plots with zero trees
+  ## Add one dummy tree at tree_distance_cutoff distance with 0 height diff, so there are no plots with zero trees
   elev_diff = cbind(elev_diff, rep(0, nrow(elev_diff)))
 
   # Prepare it as well to pass as a ragged array, but dropping the same trees as were dropped from
@@ -121,11 +123,11 @@ prep_data = function(dataset_name, # site-species
 
   # Get list of vector indexes to the tree IDs. Each list element corresponds to a plot, and it
   # contains a vector that lists the column indexes for the trees that match that plot (i.e. are
-  # within 300 m)
+  # within tree_distance_cutoff m)
   indexes = apply(r_cutoff, 1, function(x) which(!is.na(x)))
   indexes_vec = unlist(indexes)
 
-  # Add one dummy tree at 300 m distance with 0 height diff and of average size, so there are no
+  # Add one dummy tree at tree_distance_cutoff distance with 0 height diff and of average size, so there are no
   # plots with zero trees
   overstory_tree_size = c(overstory_tree_size, mean(overstory_tree_size))
 
