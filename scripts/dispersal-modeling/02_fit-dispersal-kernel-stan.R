@@ -15,6 +15,7 @@ source(here("scripts/dispersal-modeling/02_fit-dispersal-kernel-stan_functions.R
 # 02_fit-dispersal-kernel_functions.R for parameter definitions.
 m_2Dt_multiplier = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  data_dir = data_dir, # base level folder for datafiles
   disp_mod = "2Dt", # 2Dt or exppow
   err_mod = "pois", # pois only currently
   fecund_mod = "multiplier",
@@ -26,6 +27,7 @@ m_2Dt_multiplier = fit_stan_model_fecund(
 
 m_exppow_multiplier = fit_stan_model_fecund(
   dataset_name = "delta-FIRS", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  data_dir = data_dir, # base level folder for datafiles
   disp_mod = "exppow", # 2Dt or exppow
   err_mod = "pois", # pois only currently
   fecund_mod = "multiplier",
@@ -37,6 +39,7 @@ m_exppow_multiplier = fit_stan_model_fecund(
 
 m_exppow_multiplier_exponent = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  data_dir = data_dir, # base level folder for datafiles
   disp_mod = "exppow", # 2Dt or exppow
   err_mod = "pois", # pois only currently
   fecund_mod = "multiplier_exponent",
@@ -49,6 +52,7 @@ m_exppow_multiplier_exponent = fit_stan_model_fecund(
 # lnorm currently not working!
 m_lnorm_multiplier = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  data_dir = data_dir, # base level folder for datafiles
   disp_mod = "lognormal", # 2Dt, exppow, lognormal
   err_mod = "pois", # pois only currently
   fecund_mod = "multiplier",
@@ -66,6 +70,7 @@ loo(m_exppow_multiplier) # way better
 
 m_multiplier_exponent = fit_stan_model_fecund(
   dataset_name = "delta-PIPJ",
+  data_dir = data_dir, # base level folder for datafiles
   disp_mod = "2Dt", # 2Dt or exppow
   err_mod = "pois", # pois only currently
   fecund_mod = "multiplier_exponent",
@@ -75,45 +80,6 @@ m_multiplier_exponent = fit_stan_model_fecund(
   n_cores = 3 # stan n cores
 )
 
-m = fit_stan_model(
-  dataset_name = "delta-FIRS", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
-  disp_mod = "2Dt", # 2Dt or exppow
-  err_mod = "pois", # pois only currently
-  n_warmup = 150, # stan warmup iter
-  n_iter = 2500, # stan iter, includes warmup
-  n_chains = 4, # stan n chains
-  n_cores = 4 # stan n cores
-)
-
-m = fit_stan_model(
-  dataset_name = "delta-PINES",
-  disp_mod = "exppow",
-  err_mod = "pois",
-  n_warmup = 500,
-  n_iter = 2500,
-  n_chains = 4,
-  n_cores = 4
-)
-
-m = fit_stan_model(
-  dataset_name = "delta-FIRS",
-  disp_mod = "2Dt",
-  err_mod = "pois",
-  n_warmup = 500,
-  n_iter = 2500,
-  n_chains = 4,
-  n_cores = 4
-)
-
-m = fit_stan_model(
-  dataset_name = "delta-FIRS",
-  disp_mod = "exppow",
-  err_mod = "pois",
-  n_warmup = 500,
-  n_iter = 2500,
-  n_chains = 4,
-  n_cores = 4
-)
 
 #### Fit models with specified dispersal model parameterizion, in addition to dispersal kernel, error model, and species and site #### 
 
