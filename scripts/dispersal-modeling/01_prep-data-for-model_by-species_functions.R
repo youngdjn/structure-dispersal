@@ -8,6 +8,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
                      focal_species, # 4-letter code
                      overstory_tree_filepath, # relative to `datadir`
                      seedling_plot_filepath, # relative to `datadir`
+                     prepped_data_filepath, # relative to `datadir`
                      seedling_plot_crs,
                      target_crs, # target CRS (to project the raw data sources to)
                      seedling_plot_area, # area of the plot in sq m
@@ -188,6 +189,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
 prep_data_allspecies = function(site_name,
                                  overstory_tree_filepath,
                                  seedling_plot_filepath,
+                                 prepped_data_filepath,
                                  seedling_plot_crs,
                                  target_crs,
                                  seedling_plot_area) {
@@ -200,6 +202,7 @@ prep_data_allspecies = function(site_name,
               sp,
               overstory_tree_filepath,
               seedling_plot_filepath,
+              prepped_data_filepath,
               seedling_plot_crs,
               target_crs,
               seedling_plot_area)
