@@ -4,11 +4,12 @@ library(sf)
 library(elevatr)
 library(terra)
 
-prep_data_onespecies = function(site_name, # e.g. "delta"
+prep_data_onespecies = function(data_dir, # base level for data files (e.g. "/ofo-share/str-disp_data")
+                     site_name, # e.g. "delta"
                      focal_species, # 4-letter code
                      overstory_tree_filepath, # relative to `datadir`
                      seedling_plot_filepath, # relative to `datadir`
-                     prepped_data_filepath, # relative to `datadir`
+                     prepped_data_filepath, # relative to 'datadir'
                      seedling_plot_crs,
                      target_crs, # target CRS (to project the raw data sources to)
                      seedling_plot_area, # area of the plot in sq m
@@ -171,7 +172,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
   overstory_treesize_vec = overstory_tree_size[indexes_vec]
 
   # Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
-  prepped_data_dir = file.path(prepped_data_filepath, dataset_name)
+  prepped_data_dir = file.path(data_dir, prepped_data_filepath, dataset_name)
   dir.create(prepped_data_dir, recursive = TRUE)
 
   write_file(as.character(seedling_plot_area), file.path(prepped_data_dir, "plot-area.txt"))
@@ -186,7 +187,8 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
 
 # Wrapper function to run the above function for all species
 
-prep_data_allspecies = function(site_name,
+prep_data_allspecies = function(data_dir,
+                                 site_name,
                                  overstory_tree_filepath,
                                  seedling_plot_filepath,
                                  prepped_data_filepath,
@@ -199,7 +201,8 @@ prep_data_allspecies = function(site_name,
   
   for (sp in species) {
 
-    prep_data_onespecies(site_name,
+    prep_data_onespecies(data_dir,
+              site_name,
               sp,
               overstory_tree_filepath,
               seedling_plot_filepath,
