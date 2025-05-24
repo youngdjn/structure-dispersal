@@ -22,6 +22,21 @@ disp_prob <- function(k, a, dist_vector) { #
 # kernel_prob = (k / (pi * a)) * ((1 + dist_vector^2) / a)^(-1-k) # apply 2Dt kernel to the distances for all trees associated with a given plot 
 #  return(kernel_prob)
 #}
+
+# Lognormal kernel 
+disp_prob <- function(k, a, dist_vector) {
+  #bivariate lognormal kernel
+  #(e.g. Stoyan & Wagner 2001, Ecological Modelling 145: 35-47)
+  mu<-log(a)-k^2/2
+  exp(-((log(dist_vector)-a)^2)/(2*k^2))/(k*(2*pi)^(3/2)*dist_vector^2)
+}
+
+disp_prob <- function(k, a, dist_vector) {
+  #bivariate WALD (=inverse Gaussian) kernel
+  #(Katul et al. 2005, American Naturalist 166: 368-381)
+  k^0.5*(2*pi)^(-1.5)*dist_vector^(-2.5)*exp(-(k*(dist_vector-a)^2)/(2*a^2*dist_vector))
+}
+
   
 # Calculate expected/fitted seedlings per plot 
 calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) {
@@ -82,7 +97,7 @@ fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overst
   # As an experiment, hard-code a "reasonable value for b 
   pars.init <- c(b, k, a) 
   
-  fit <- optim(pars.init, method = "Nelder-Mead", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) 
+  fit <- optim(pars.init, method = "L-BFGS-B", lower = c(5, 0.2, 10), upper = c(120, 2, 120), control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) 
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
@@ -98,7 +113,7 @@ fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overst
   return(res)
 }
 
-get_disp_data <- function(dataset_name) # corresponding data files in datadir/prepped-for-stan/{dataset_name}
+get_disp_data <- function(dataset_name, data_dir) # corresponding data files in datadir/prepped-for-stan/{dataset_name}
   { 
   
   # -- Load prepped dataset (corresponding data files in datadir/prepped-for-stan/{dataset_name})
@@ -150,27 +165,31 @@ library(tidyverse)
 # Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
+
 # Load dataset from one fire 
-disp_data = get_disp_data(dataset_name = "delta-PINES")
+disp_data_dir = file.path(data_dir, "max750")
+disp_data = get_disp_data(dataset_name = "chips-FIRS", data_dir = data_dir)
 
 # Or instead load a simulated dataset 
-seedling_plot_area = 201
-n_seedling_plots = n_plots
+#seedling_plot_area = 201
+#n_seedling_plots = n_plots
 
 
 
-disp_data = lst(seedling_plot_area,
-                      n_overstory_trees,
-                      n_seedling_plots,
-                      overstory_tree_size,
-                      seedling_counts,
-                      dist_vector,
-                      obs = length(dist_vector),
-                      pos)
+#disp_data = lst(seedling_plot_area,
+#                      n_overstory_trees,
+#                     n_seedling_plots, 
+#                    overstory_tree_size,
+#                   seedling_counts,
+#                      dist_vector,
+#                      obs = length(dist_vector),
+#                      pos)
 
 # check that the model converges from dispersed initial values 
-startpars1 = list(b = 10, k = 1, a = 40)
-startpars2 = list(b = 10, k = 0.2, a = 10)
+startpars1 = list(b = 20, k = 0.6, a = 20)
+startpars2 = list(b = 10, k = 1, a = 20)
+# Convergence is sensitive to starting values -- can converge to "reasonable" or extreme values for most data sets 
+# Using 500m distance seems slighly more stable (more informative)
 
 
 # Check likelihood calculation
@@ -217,7 +236,7 @@ ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
 
 # visualize likelihood surface 
 bvals = 5
-kvals = seq(1, 2, by = 0.05)
+kvals = seq(0.4, 1.5, by = 0.05)
 avals = seq(5, 120, by = 5)
 parameter_test_set <- expand.grid(bvals, kvals, avals) 
 names(parameter_test_set) = c("b", "k", "a")
@@ -246,8 +265,8 @@ lik_surface_data[which.max(lik_surface_data$negloglikvals),]
 
 # plot a 2D likelihood surface using negloglikvals data
 ggplot(lik_surface_data, aes(x = a, y = k, z = negloglikvals)) + 
-  #geom_tile(aes(fill = log(negloglikvals))) + 
-  geom_contour() + 
+  geom_tile(aes(fill = log(negloglikvals))) + 
+  #geom_contour() + 
   scale_fill_viridis_c() + 
   theme_minimal() + 
   labs(title = "Likelihood surface", x = "a", y = "k") +
