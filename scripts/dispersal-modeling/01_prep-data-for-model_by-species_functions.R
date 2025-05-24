@@ -12,7 +12,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
                      seedling_plot_crs,
                      target_crs, # target CRS (to project the raw data sources to)
                      seedling_plot_area, # area of the plot in sq m
-                     tree_distance_cutoff = 300 # ignore trees farther than this from a plot
+                     tree_distance_cutoff # ignore trees farther than this from a plot
                      
 ) {
 
@@ -171,7 +171,7 @@ prep_data_onespecies = function(site_name, # e.g. "delta"
   overstory_treesize_vec = overstory_tree_size[indexes_vec]
 
   # Write to file: distance matrix, overstory tree size, observed seedling count, and plot area
-  prepped_data_dir = file.path(data_dir, "prepped-for-stan", dataset_name)
+  prepped_data_dir = file.path(prepped_data_filepath, dataset_name)
   dir.create(prepped_data_dir, recursive = TRUE)
 
   write_file(as.character(seedling_plot_area), file.path(prepped_data_dir, "plot-area.txt"))
@@ -192,7 +192,8 @@ prep_data_allspecies = function(site_name,
                                  prepped_data_filepath,
                                  seedling_plot_crs,
                                  target_crs,
-                                 seedling_plot_area) {
+                                 seedling_plot_area, 
+                                 tree_distance_cutoff) {
 
   species = c("ALL", "ABCO", "PSME", "PIPJ", "PILA", "PINES", "FIRS")
   
@@ -205,6 +206,7 @@ prep_data_allspecies = function(site_name,
               prepped_data_filepath,
               seedling_plot_crs,
               target_crs,
-              seedling_plot_area)
+              seedling_plot_area, 
+              tree_distance_cutoff)
   }
 }
