@@ -17,11 +17,11 @@ disp_prob <- function(k, a, dist_vector) { #
   return(kernel_prob)
 }
 
-# 2Dt kernel
-disp_prob <- function(k, a, dist_vector) { # 
- kernel_prob = (k / (pi * a)) * ((1 + dist_vector^2) / a)^(-(1-k)) # apply 2Dt kernel to the distances for all trees associated with a given plot 
-  return(kernel_prob)
-}
+# 2Dt kernel # NEED TO CHECK THIS (Katul vs Marchand)
+#disp_prob <- function(k, a, dist_vector) { # 
+#kernel_prob = ((k-1) / (pi * a^2)) * ((1 + dist_vector^2) / a^2)^(-k) # apply 2Dt kernel to the distances for all trees associated with a given plot 
+#  return(kernel_prob)
+#}
 
 # Lognormal kernel 
 #disp_prob <- function(k, a, dist_vector) {
@@ -55,24 +55,32 @@ calc_mu <- function(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size
 }
 
 # Function to get the negative log likelihood for a set of parameter values
-calc_negloglik <- function(pars, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
+calc_negloglik <- function(pars, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area, lik_distrib) {
   b = pars[1]
   k = pars[2]
   a = pars[3]
+  if (lik_distrib == "negbin") theta = pars[4]
   mu = calc_mu(k, a, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area) 
-  negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE))
+  if (lik_distrib == "pois") {
+    negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE))
+  }
+  else{
+    negloglik = -sum(dnbinom(x = seedling_counts, mu = mu, size = theta, log=TRUE))
+  }
   return(negloglik)
 }
 
 
 ### Function to fit the model using optim
-fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area)
+fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area, lik_distrib)
 {
   #ML fitting of an inverse model with source and path effects
   #ARGUMENTS:
   #
-  #startpars: a list with elements b, k, a giving starting values for parameters
-  #           of the dispersal (k, a) and fecundity models (b)
+  #startpars: a list with elements b, k, a, theta giving starting values for parameters
+  #           of the dispersal (k, a) and fecundity models (b), and the negative binomial likelihood dispersion parameter (theta)
+  # 
+  # lik_distrib is the count distribution for the model (pois or negbin)
   #
   # other variables are the overstory tree sizes, distances from each tree to each plot, in sparse/ragged form, pos which points to the starting point of each plot's data in the vectors, plus the number of trees in each plot.
   #
@@ -95,24 +103,23 @@ fit_model_optim <- function(startpars, b, n_overstory_trees, dist_vector, overst
   b <- startpars$b
   k <- startpars$k
   a <- startpars$a
+  if (lik_distrib == "negbin") theta <- startpars$theta
   
   # As an experiment, hard-code a "reasonable value for b 
-  pars.init <- c(b, k, a) 
+  if (lik_distrib == "pois") pars.init <- c(b, k, a) else pars.init <- c(b, k, a, theta)
   
-  fit <- optim(pars.init, method = "BFGS", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area) # lower = c(5, 0.2, 10), upper = c(120, 2, 120)
+  fit <- optim(pars.init, method = "BFGS", control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_counts = seedling_counts, seedling_plot_area = seedling_plot_area, lik_distrib = lik_distrib) # lower = c(5, 0.2, 10), upper = c(120, 2, 120)
   
   if (fit$convergence!=0) warning("Fit did not converge!")
   
-  estimates<-list(b=fit$par[1],
-                  k=fit$par[2],
-                  a=fit$par[3])
-
+  if (lik_distrib == "pois") estimates = list(b=fit$par[1], k=fit$par[2], a=fit$par[3]) else estimates = list(b=fit$par[1], k=fit$par[2], a=fit$par[3], theta = fit$par[4])
+      
   fv <- calc_mu(b = fit$par[1], k = fit$par[2], a = fit$par[3], n_overstory_trees = n_overstory_trees, dist_vector = dist_vector, overstory_tree_size = overstory_tree_size, pos = pos, seedling_plot_area = seedling_plot_area)
   
-  res<-list(estimates=estimates,negloglik=fit$value,fitted.values=fv,call=cl,
+  results<-list(estimates=estimates,negloglik=fit$value,fitted.values=fv,call=cl,
             counts=fit$counts,convergence=fit$convergence,message=fit$message)
   
-  return(res)
+  return(results)
 }
 
 get_disp_data <- function(dataset_name, data_dir) # corresponding data files in datadir/prepped-for-stan/{dataset_name}
@@ -188,8 +195,9 @@ disp_data = get_disp_data(dataset_name = "delta-FIRS", data_dir = data_dir)
 #                      pos)
 
 # check that the model converges from dispersed initial values 
-startpars1 = list(b = 20, k = 0.5, a = 20)
-startpars2 = list(b = 10, k = 0.4, a = 10)
+startpars1 = list(b = 10, k = 0.5, a = 10)
+startpars2 = list(b = 10, k = 0.5, a = 10, theta = 5)
+
 # Convergence is sensitive to starting values -- can converge to "reasonable" or extreme values for most data sets 
 # Using 500m distance seems slighly more stable (more informative)
 
@@ -201,7 +209,7 @@ calc_negloglik(pars = c(startpars1$b, startpars1$k, startpars1$a),
                overstory_tree_size = disp_data$overstory_tree_size, 
                pos = disp_data$pos, 
                seedling_counts = disp_data$seedling_counts, 
-               seedling_plot_area = disp_data$seedling_plot_area)
+               seedling_plot_area = disp_data$seedling_plot_area, lik_distrib = "pois")
 # It's sensitive to extreme values of k and a (gives NLL = Inf)
 
 m1 = fit_model_optim(startpars1, 
@@ -210,7 +218,8 @@ m1 = fit_model_optim(startpars1,
                     overstory_tree_size = disp_data$overstory_tree_size, 
                     pos = disp_data$pos, 
                     seedling_counts = disp_data$seedling_counts, 
-                    seedling_plot_area = disp_data$seedling_plot_area)
+                    seedling_plot_area = disp_data$seedling_plot_area,
+                    lik_distrib = "pois")
 
 m2 = fit_model_optim(startpars2, 
                      n_overstory_trees = disp_data$n_overstory_trees, 
@@ -218,7 +227,8 @@ m2 = fit_model_optim(startpars2,
                      overstory_tree_size = disp_data$overstory_tree_size, 
                      pos = disp_data$pos, 
                      seedling_counts = disp_data$seedling_counts, 
-                     seedling_plot_area = disp_data$seedling_plot_area)
+                     seedling_plot_area = disp_data$seedling_plot_area, 
+                     lik_distrib = "negbin")
 
 m1$estimates
 m1$negloglik
@@ -227,6 +237,7 @@ m2$estimates
 m2$negloglik
 
 # some converge to reasonable values, some don't 
+# Going to negbin from poisson improves deviance a lot, but doesn't seem to help convergence. 
 
 m = m1 # choose model to plot
 
@@ -234,19 +245,27 @@ m = m1 # choose model to plot
 obspred_data <- data.frame(fitted = m$fitted.values, observed = disp_data$seedling_counts)
 ggplot(obspred_data, aes(x = log(fitted), y = log(observed+0.5))) + geom_point()
 
+# Check of residuals 
+obspred_data$resids = obspred_data$observed-obspred_data$fitted
+qqnorm(obspred_data$resids)
+plot(resids~fitted, obspred_data)
+hist(obspred_data$resids)
+
+
 # plot dispersal kernel based on fitted parameters
-kernel_plot_data <- data.frame(Distance = 1:500, Probability = disp_prob(k = m$estimates$k, a = m$estimates$a, dist_vector = 1:500))
+kernel_plot_data <- data.frame(Distance = 1:800, Probability = disp_prob(k = m$estimates$k, a = m$estimates$a, dist_vector = 1:800))
 ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
 
 # visualize likelihood surface 
-bvals = 5
-kvals = seq(0.4, 1.5, by = 0.05)
+bvals = 90
+kvals = seq(0.2, 0.7, by = 0.05)
 avals = seq(5, 120, by = 5)
-parameter_test_set <- expand.grid(bvals, kvals, avals) 
-names(parameter_test_set) = c("b", "k", "a")
+thetavals = 50
+parameter_test_set <- expand.grid(bvals, kvals, avals, thetavals) 
+names(parameter_test_set) = c("b", "k", "a", "theta")
 head(parameter_test_set)
 fn_to_apply_negloglik <- function(param_test_vals, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area) {
-  pars = c(param_test_vals[1], param_test_vals[2], param_test_vals[3])
+  pars = c(param_test_vals[1], param_test_vals[2], param_test_vals[3], param_test_vals[4])
   nll = calc_negloglik(pars = pars, n_overstory_trees, 
                        dist_vector, overstory_tree_size, pos, 
                        seedling_counts, seedling_plot_area)
@@ -291,7 +310,11 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 # The model runs away to very unrealistic and extreme parameter combinations. TRY keeping b fixed. DONE - didn't help 
 # Check that model can recover params from simulation. DONE -- yes it can! 
 
-# Since simulations work to recover parameters, see if any of the data sets for the other 3 fires (other than Delta) can converge to reasonable parameter values
+# Since simulations work to recover parameters, see if any of the data sets for the other 3 fires (other than Delta) can converge to reasonable parameter values. 
+
+# Implement negbin likelihood - done 
+
+# Systematically test which data sets x likelihood types converge consistently to something biologically plausible, or at least do so from reasonable starting values. 
 
 
 
