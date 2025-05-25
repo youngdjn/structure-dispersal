@@ -61,20 +61,25 @@ source(here("scripts/dispersal-modeling/01_prep-data-for-model_by-species_functi
 #   seedling_plot_area = 900
 # )
 
-prep_data_allspecies(
-  site_name = "delta",
-  overstory_tree_filepath = file.path("predicted-treecrowns-w-predicted-species/delta.geojson"),
-  seedling_plot_filepath = file.path("regen-plots-standardized/delta.gpkg"),
+prep_data_allspecies(data_dir = data_dir,
+  site_name = "chips",
+  overstory_tree_filepath = file.path("predicted-treecrowns-w-predicted-species/chips.geojson"),
+  seedling_plot_filepath = file.path("regen-plots-standardized/chips.gpkg"),
+  prepped_data_filepath = file.path("prepped-for-stan/max750"),
   target_crs = 3310,
-  seedling_plot_area = 201
+  seedling_plot_area = 201, 
+  tree_distance_cutoff = 750
 )
 
 
-prep_data_onespecies(site_name = "delta", # e.g. "delta"
+prep_data_onespecies(data_dir = data_dir,
+    site_name = "delta", # e.g. "delta"
     focal_species = "FIRS", # 4-letter code
     overstory_tree_filepath = file.path("predicted-treecrowns-w-predicted-species/delta.geojson"),
     seedling_plot_filepath = file.path("regen-plots-standardized/delta.gpkg"),
+    prepped_data_filepath = file.path("prepped-for-stan/maxdist750"),
     target_crs = 3310, # target CRS (to project the raw data sources to)
-    seedling_plot_area = 201 # area of the plot in sq m
+    seedling_plot_area = 201, # area of the plot in sq m
+    tree_distance_cutoff = 750
 ) 
 
