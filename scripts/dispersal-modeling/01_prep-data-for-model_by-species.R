@@ -1,7 +1,4 @@
-# Take the seedling plot (field survey) and overstory tree (processed drone) data and produce data
-# in the appropriate format for feeding to a Stan model. Prepped data saved in
-# {datadir}/prepped-for-stan
-
+### Take the seedling plot (field survey) and overstory tree (processed drone) data and produce data in the appropriate format for feeding to a Bayesian model using Stan, or a ML model using an optimizer.
 
 # Data directory
 library(here)
@@ -9,57 +6,6 @@ if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt
 
 ## Main functions for the tasks of this script
 source(here("scripts/dispersal-modeling/01_prep-data-for-model_by-species_functions.R"))
-
-#### Summarize data across sites
-
-## Overstory trees
-
-# # d1 = st_read(file.path(data_dir, "ttops-live/crater.gpkg"))
-# # d2 = st_read(file.path(data_dir, "ttops-live/valley.gpkg"))
-# d3 = st_read(file.path(data_dir, "predicted-treecrowns-w-predicted-species/delta.geojson"))
-# # d4 = st_read(file.path(data_dir, "ttops-live/chips.gpkg"))
-
-# # d = bind_rows(d1, d2, d3, d4)
-# d = d3
-
-# ## Regen plots
-
-# d1 = st_read(file.path(data_dir, "regen-plots-standardized/crater.gpkg")) |>
-#   mutate(area = 900) |>
-#   st_transform(3310)
-# d2 = st_read(file.path(data_dir, "regen-plots-standardized/valley.gpkg")) |>
-#   mutate(area = 201) |>
-#   st_transform(3310)
-# d3 = st_read(file.path(data_dir, "regen-plots-standardized/delta.gpkg")) |>
-#   mutate(area = 201) |>
-#   st_transform(3310)
-# d4 = st_read(file.path(data_dir, "regen-plots-standardized/chips.gpkg")) |>
-#   mutate(area = 113) |>
-#   st_transform(3310)
-
-# d = bind_rows(d1, d2, d3, d4)
-
-# d = d |>
-#   mutate(density = observed_count / area)
-
-
-# Run data prep for a specific site. See 01_prep-data-for-model_functions.R for parameter
-# definitions.
-# prep_data(
-#   dataset_name = "valley-allsp",
-#   overstory_tree_filepath = "ttops-live/valley.gpkg",
-#   seedling_plot_filepath = "regen-plots-standardized/valley.gpkg",
-#   target_crs = 3310,
-#   seedling_plot_area = 201
-# )
-
-# prep_data(
-#   dataset_name = "crater-pipj",
-#   overstory_tree_filepath = "ttops-live/crater.gpkg",
-#   seedling_plot_filepath = "regen-plots-standardized/crater.gpkg",
-#   target_crs = 32611,
-#   seedling_plot_area = 900
-# )
 
 prep_data_allspecies(data_dir = data_dir,
   site_name = "chips",
@@ -83,3 +29,21 @@ prep_data_onespecies(data_dir = data_dir,
     tree_distance_cutoff = 750
 ) 
 
+
+test = get_dispdata(data_dir = data_dir,
+                     site_name = "delta", # e.g. "delta"
+                     focal_species = "FIRS", # 4-letter code
+                     overstory_tree_filepath = file.path("predicted-treecrowns-w-predicted-species/delta.geojson"),
+                     seedling_plot_filepath = file.path("regen-plots-standardized/delta.gpkg"),
+                     target_crs = 3310, # target CRS (to project the raw data sources to)
+                     seedling_plot_area = 201, # area of the plot in sq m
+                     min_tree_height = 10, # min tree height to include in m
+                     density_raster_resolution = 15, 
+                     tree_distance_cutoff = 500
+) 
+
+
+names(dispdata)
+length(dispdata$elev_diff_vector)
+length(dispdata$dist_vector)
+length(dispdata$tree_density_vector)
