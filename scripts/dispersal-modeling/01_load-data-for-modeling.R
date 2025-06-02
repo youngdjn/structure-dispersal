@@ -1,9 +1,16 @@
-# Get data for model and package into standard data object for modeling 
+# Functions that load data on tree locations and seedling plots, and package into standard data object for modeling. 
+# -- they generate a DEM and elevation data 
+# -- they generate a tree density raster
+# -- they package data up into full matrices and into sparse long vector format. 
 
-# This includes
+# Main functions
 #   - get_dispdata() -- formats data from existing drone-derived tree maps
 #   - simulate_dispdata() -- simulates data from tree and seedling plots
 
+# Auxiliary functions 
+#   - get_dem_data()
+#   - get_tree_density()
+#   - simulate_seed_rain()
 
 ### Loading existing tree and plot data 
 
