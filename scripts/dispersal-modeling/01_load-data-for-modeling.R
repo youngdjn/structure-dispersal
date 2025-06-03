@@ -40,7 +40,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   overstory_trees = st_centroid(overstory_trees)
   
   # Filter overstory to exclude SNAG and include only the focal species
-  overstory_trees = overstory_trees |>
+  overstory_trees_all = overstory_trees |>
     filter(!(pred_class_ID %in% c("SNAG", "unknown")))
   
   if (focal_species == "PINES") {
@@ -62,7 +62,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   seedling_plots$elevation = terra::extract(elev, seedling_plots)
   
   # get tree density raster for focal area 
-  tree_density <- get_tree_density(overstory_trees, seedling_plots, density_raster_resolution)
+  tree_density <- get_tree_density(overstory_trees_all, seedling_plots, density_raster_resolution)
   
   # extract tree density data for the plot and tree locations 
   overstory_trees$tree_density = terra::extract(tree_density, overstory_trees)$count
