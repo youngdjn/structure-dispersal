@@ -3,67 +3,71 @@
 
 # Start with an example simple model (exppow, with a one-parameter fecundity function)
 
-# Fecundity function (vectorized calculation for a single plot)
-q_fun <- function(pars, overstory_tree_size, fecundity_fn = "linear") { 
-  if (fecundity_fn == "linear") q = pars$b * overstory_tree_size # fecundity equation
-  if (fecundity_fn == "exponential") q = pars$b * overstory_tree_size ^ pars$zeta # fecundity equation
-  return(q)
+# Helper function that orchestrates the calculation
+calculate_expected_counts <- function(pars, disp_data, settings) {
+  
+  # Combine into expected counts per plot
+  expected_counts <- numeric(disp_data$n_plots)
+  
+  for (i in seq_along(disp_data$n_plots)) {
+
+    # Use indices to get the trees & their size & distances for plot i 
+    start_idx <- disp_data$pos[i]
+    end_idx <- disp_data$pos[i] + disp_data$n_overstory_trees[i] - 1
+    plot_trees <- start_idx:end_idx
+    heights_for_plot <- disp_data$overstory_tree_size[plot_trees]
+    distances_for_plot <- disp_data$dist_vector[plot_trees]
+
+    # Calculate fecundity for each tree in plot i
+    tree_fecundity <- calculate_fecundity(height = heights_for_plot, pars = pars, 
+                                          fecundity_type = settings$fecundity_fn)
+    
+    # Calculate dispersal probabilities for each tree in plot i 
+    dispersal_probs <- calculate_dispersal(distance = distances_for_plot, pars = pars,
+                                           kernel_type = settings$disp_kernel)
+    
+    # Calculate expected seedling count
+    expected_counts[i]  <- tree_fecundity * dispersal_probs * seedling_plot_area
+  }
+  
+  return(expected_counts)
 }
 
-# Dispersal kernel function (vectorized calculation for a single plot)
-disp_prob <- function(pars, dist_vector, disp_kernel = "exppow") { # 
-  # For readability, extract individual parameter values from pars list
-  a = pars$a
-  b = pars$b
+# Individual component functions
+calculate_fecundity <- function(height, pars, fecundity_type) {
+  switch(fecundity_type,
+         "linear" = pars$b * height,
+         "exponential" = pars$b * height ^ pars$zeta
+  )
+}
+
+calculate_dispersal <- function(distance, pars, kernel_type) {
   k = pars$k
-  
-  # choose kernel and apply to all trees associated with a given plot
-  if (disp_kernel == "exppow") kernel_prob = exp(-(dist_vector/a)^k)*k / 
-            (2 * pi * a^2 * gamma(2/k)) 
-  if (disp_kernel == "2Dt") kernel_prob = ((k-1) / (pi * a^2)) * 
-      ((1 + dist_vector^2) / a^2)^(-k) # NEED TO CHECK THIS (Katul vs Marchand)
-  if (disp_kernel == "lognormal") {
-    mu<-log(a)-k^2/2 # (e.g. Stoyan & Wagner 2001, Ecological Modelling 145: 35-47)
-    kernel_prob = exp(-((log(dist_vector)-mu)^2)/ # CHECK
-            (2*k^2))/(k*(2*pi)^(3/2)*dist_vector^2)
-  }
-  if (disp_kernel == "wald") {#(Katul et al. 2005, American Naturalist 166: 368-381)
-      kernel_prob = k^0.5*(2*pi)^(-1.5) * dist_vector^(-2.5) * 
-            exp(-(k*(dist_vector-a)^2)/(2*a^2*dist_vector)) 
-  }
-
-  return(kernel_prob)
+  a = pars$a
+  switch(kernel_type,
+         "exppow" = exp(-(distance/a)^k)*k / 
+                          (2 * pi * a^2 * gamma(2/k)), 
+         "2Dt" = ((k-1) / (pi * a^2)) * ((1 + distance^2) / a^2)^(-k),
+                          # NEED TO CHECK THIS (Katul vs Marchand),
+         "lognormal" = exp(-((log(distance)-mu)^2)/ 
+                          (2*k^2))/(k*(2*pi)^(3/2)*distance^2), # CHECK
+         "wald" = k^0.5*(2*pi)^(-1.5) * distance^(-2.5) * 
+                          exp(-(k*(distance-a)^2)/(2*a^2*distance)) 
+                          #(Katul et al. 2005, American Naturalist 166: 368-381)
+  )
 }
 
+calculate_negloglik <- function(pars, disp_data, settings) {
 
-# Calculate expected # of seedlings per plot 
-calc_mu <- function(pars, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_plot_area, fecundity_fn, disp_kernel) {
-  n_seedling_plots = length(n_overstory_trees) 
-  mu = vector(mode = "numeric", length = n_seedling_plots)
+  observed = disp_data$seedling_counts
+  expected = calculate_expected_counts(pars, disp_data, settings)
+    
+  nll = switch(distrib_type,
+         "pois" = sum(dpois(observed, expected, log = TRUE)),
+         "negbin" = sum(dnbinom(observed, size = pars$theta, mu = expected, log = TRUE))
+  )
   
-  for(i in 1:n_seedling_plots){
-      segment_start = pos[i]
-      segment_end = pos[i] + n_overstory_trees[i] - 1
-      mu[i] = sum(disp_prob(pars, dist_vector[segment_start:segment_end], disp_kernel)
-          * q_fun(pars, overstory_tree_size[segment_start:segment_end], fecundity_fn)
-          * seedling_plot_area) # plot area
-  }
-  return(mu)
 }
-
-# Function to get the negative log likelihood for a set of parameter values
-calc_negloglik <- function(pars, n_overstory_trees, dist_vector, overstory_tree_size, pos, seedling_counts, seedling_plot_area, lik_distrib, fecundity_fn, disp_kernel) {
-  
-  mu = calc_mu(pars=pars, n_overstory_trees=n_overstory_trees, dist_vector=dist_vector, overstory_tree_size=overstory_tree_size, pos=pos, seedling_plot_area=seedling_plot_area, fecundity_fn=fecundity_fn, disp_kernel=disp_kernel) 
-  if (lik_distrib == "pois") {
-    negloglik = -sum(dpois(x = seedling_counts, lambda = mu, log=TRUE))
-  }
-  if (lik_distrib == "negbin") {
-    negloglik = -sum(dnbinom(x = seedling_counts, mu = mu, size = pars$theta, log=TRUE))
-  }
-  return(negloglik)
-}
-
 
 ### Function to fit the model using optim
 fit_model_ml <- function(pars, disp_data, settings)
@@ -135,16 +139,10 @@ fit_model_ml <- function(pars, disp_data, settings)
   # Wrapper function that converts vector back to named list
   calc_negloglik_wrapper <- function(par_vec, disp_data, settings) {
     par_list <- setNames(as.list(par_vec), par_structure)
-    calc_negloglik(pars = par_list, 
-                   n_overstory_trees = disp_data$n_overstory_trees,
-                   dist_vector = disp_data$dist_vector,
-                   overstory_tree_size = disp_data$overstory_tree_size,
-                   pos = disp_data$pos,
-                   seedling_counts = disp_data$seedling_counts,
-                   seedling_plot_area = disp_data$seedling_plot_area,
-                   lik_distrib = settings$lik_distrib,
-                   disp_kernel = settings$disp_kernel,
-                   fecundity_fn = settings$fecundity_fn)
+    nll = calc_negloglik(pars = par_list, 
+                   disp_data = disp_data,
+                   settings = settings)
+    return(nll)
   }
   
   # Fit the model
@@ -165,14 +163,9 @@ fit_model_ml <- function(pars, disp_data, settings)
   
   # Calculate fitted values (you'll need to implement this part)
   par_list <- setNames(as.list(par_vec), par_structure)
-  fitted_values <- calc_mu(pars = par_list, 
-        n_overstory_trees = disp_data$n_overstory_trees, 
-        dist_vector = disp_data$dist_vector, 
-        overstory_tree_size = disp_data$overstory_tree_size, 
-        pos = disp_data$pos, 
-        seedling_plot_area = disp_data$seedling_plot_area, 
-        fecundity_fun = settings$fecundity_fun, 
-        disp_kernel = setting$disp_kernel)
+  fitted_values <- calculate_expected_counts(pars = par_list, 
+        disp_data = disp_data,
+        settings = settings)
   
   # Structure the return list
   result <- list(
