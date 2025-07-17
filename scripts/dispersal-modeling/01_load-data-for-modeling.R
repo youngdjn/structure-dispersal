@@ -174,7 +174,8 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
     elev_diff_vector = elevdiff_cutoff_vec,
     tree_density_vector = tree_density_vec,
     tree_size_vector = tree_size_vec, 
-    seedling_counts = seedling_counts)
+    seedling_counts = seedling_counts,
+    n_plots = length(seedling_counts))
   
   return(disp_data)
 }
@@ -373,7 +374,8 @@ simulate_dispdata = function(domain_size = 800, # length of one side of simulate
     elev_diff_vector = elevdiff_cutoff_vec,
     tree_density_vector = tree_density_vec,
     tree_size_vector = tree_size_vec, 
-    seedling_counts = seedling_counts)
+    seedling_counts = seedling_counts, 
+    n_plots = length(seedling_counts))
   
   return(disp_data)
 }
