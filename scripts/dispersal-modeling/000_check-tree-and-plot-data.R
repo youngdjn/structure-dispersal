@@ -12,8 +12,9 @@ library(dplyr)
 library(ggplot2)
 library(here)
 
-#data_dir = readLines(here("data_dir.txt"), n = 1)
-data_dir = "/ofo-share" # set directory to base of filetree because plot data & tree data in different folders
+# Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
+if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
+
 
 tree_data_dir = file.path(data_dir, "str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species")
 plot_data_dir = file.path(data_dir, "str-disp_data/regen-plots-standardized")
