@@ -26,7 +26,7 @@ m_2Dt_multiplier = fit_stan_model_fecund(
 )
 
 m_exppow_multiplier = fit_stan_model_fecund(
-  dataset_name = "delta-FIRS", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
+  dataset_name = "delta-PINES", # which dataset to model (corresponding data files must be in datadir/prepped-for-stan/{dataset_name}), produced by 01_prep-data-for-model.R
   data_dir = data_dir, # base level folder for datafiles
   disp_mod = "exppow", # 2Dt or exppow
   err_mod = "pois", # pois only currently
