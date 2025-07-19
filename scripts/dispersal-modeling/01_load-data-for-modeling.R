@@ -65,6 +65,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   seedling_plots$elevation = terra::extract(elev, seedling_plots)
   
   # get tree density raster for focal area 
+  cat("\n Calculating tree density raster")
   tree_density <- get_tree_density(overstory_trees_all, seedling_plots, density_raster_resolution)
   
   # extract tree density data for the plot and tree locations 
@@ -72,6 +73,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   seedling_plots$tree_density = terra::extract(tree_density, seedling_plots)$count
  
   ### Prep overstory tree data: columns ID, x and y location, and size
+  cat("Prepping overstory tree data")
   tree_coords = st_coordinates(overstory_trees, )
   overstory_trees$x = tree_coords[, 1]
   overstory_trees$y = tree_coords[, 2]
@@ -88,6 +90,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   overstory_tree_size <- overstory_trees$size
   
   # Prep seedling data with columns: plot id, x and y position, seedling count
+  cat("Prepping seedling plot data")
   coords = st_coordinates(seedling_plots)
   seedling_plots$x = coords[, 1]
   seedling_plots$y = coords[, 2]
@@ -96,7 +99,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   count_col = paste0("count_", focal_species)
   
   seedling_plots = seedling_plots %>%
-    dplyr::select(x, y, observed_count = one_of(count_col), elevation)
+    dplyr::select(x, y, observed_count = any_of(count_col), elevation)
 
   # Assign a plot ID
   seedling_plots$seedling_plot_id <- seq_len(nrow(seedling_plots))
@@ -111,6 +114,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   seedling_counts[seedling_counts %% 1 > 0] <- round_frac(seedling_counts[seedling_counts %% 1 > 0])
   
   ### Calculate distance matrix for distance between each overstory tree and each plot
+  cat("\n Calculating distances")
   
   d2min <- 0.01
   
@@ -129,6 +133,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   
   # -- Prepare the objects needed to pass a "ragged matrix" of pairwise distances to stan 
   #number of non-NA values (overstory tree distances) per row (i.e. per seedling plot)
+  cat("\n Prepping ragged data")
   n_nonNA = rowSums(!is.na(r_cutoff))
   r_cutoff_vecfull = as.vector(t(r_cutoff))
   r_cutoff_vec = r_cutoff_vecfull[!is.na(r_cutoff_vecfull)] # 1-D vector of all the non-NA values
