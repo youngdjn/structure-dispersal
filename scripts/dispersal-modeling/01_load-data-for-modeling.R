@@ -29,6 +29,9 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
                                 
 ) {
   
+  require(sf)
+  require(terra)
+  
   ### Load the overstory tree and seedling data for the specified site
   overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) |>
     st_transform(target_crs)
@@ -188,8 +191,14 @@ get_dem_data <- function(overstory_trees, seedling_plots) {
   require(elevatr)
   
   # Create a combined polygon spanning all the trees and plots
-  bound_trees = overstory_trees |> st_buffer(100) |> st_union()
-  bound_plots = seedling_plots |> st_buffer(100) |> st_union()
+  bound_trees = overstory_trees |> 
+    st_combine() |> 
+    st_buffer(100) |> 
+    st_simplify()
+  bound_plots = seedling_plots |> 
+    st_combine() |> 
+    st_buffer(100) |> 
+    st_simplify()
   bound = st_union(bound_trees, bound_plots)
 
   # download the DEM 
@@ -387,6 +396,7 @@ simulate_seed_rain <- function(tree_df, plot_df,
                                seedling_plot_area = 1
                                ) {
   #' Simulate seed rain using exponential power kernel
+  #'  - May want to add other kernels later 
   #' 
   #' @param tree_df Data frame with columns x, y, height
   #' @param plot_df Data frame with columns x, y
