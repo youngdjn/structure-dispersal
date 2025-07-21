@@ -58,14 +58,48 @@ calculate_dispersal <- function(distance, pars, kernel_type) {
   return(disp_probs)
 }
 
-calculate_negloglik <- function(pars, disp_data, settings) {
+# Helper function to set up parameter structure 
+get_par_structure <- function(settings) {
+  par_names <- character(0)
+  
+  # Dispersal kernel parameters 
+  # (assuming disperal parameters are the same across all kernels for now)
+  par_names <- c(par_names, "k", "a")
+  
+  # Fecundity function parameters  
+  if (settings$fecundity_fn == "linear") {
+    par_names <- c(par_names, "b")
+  } else if (settings$fecundity_fn == "exponential") {
+    par_names <- c(par_names, "b", "zeta")
+  }
+  
+  # Likelihood distribution parameters
+  if (settings$lik_distrib == "negbin") {
+    par_names <- c(par_names, "theta")
+  }
+  
+  return(par_names)
+}
 
+calculate_negloglik <- function(pars_vector, disp_data, settings) {
+  
+  # First convert parameter vector from optim to a list to suppy to other functions
+  
+  # Get parameter structure for this model configuration
+  par_structure <- get_par_structure(settings)
+  
+  # Convert vector to named list
+  pars <- setNames(as.list(pars_vector), par_structure)
+  
+  
+  # Assemble observed and expected counts for likelihood
   observed = disp_data$seedling_counts
   expected = calculate_expected_counts(pars, disp_data, settings)
-    
+  
+  # Calculate NLL
   nll = switch(settings$lik_distrib,
-         "pois" = sum(dpois(observed, expected, log = TRUE)),
-         "negbin" = sum(dnbinom(observed, size = pars$theta, mu = expected, log = TRUE))
+         "pois" = -sum(dpois(observed, expected, log = TRUE)),
+         "negbin" = -sum(dnbinom(observed, size = pars$theta, mu = expected, log = TRUE))
   )
   return(nll)
 }
@@ -124,39 +158,23 @@ fit_model_ml <- function(pars, disp_data, settings)
   if (settings$fecundity_fn == "exponential") try(if(is_null(pars$zeta)) stop("Parameter zeta missing."))
   if (settings$lik_distrib == "negbin") try(if(is_null(pars$theta)) stop("Parameter theta missing."))
   
+  # Get parameter structure and convert named parameter list to vector
+  par_structure <- get_par_structure(settings)
+  pars_vector <- sapply(par_structure, function(name) pars[[name]])
   
-  
-  # Convert named list to vector, ensuring correct order
-  #   Order is always "k", "a", "b", "zeta", "theta"
-  #   If parameters are not needed for this model, their value is NA
-  par_vector <- vector(mode = "numeric", length = 5)
-  par_vector[1:5] <- c(pars$k, pars$a, pars$b, 
-                       ifelse(is.null(pars$zeta), NA, pars$zeta),
-                       ifelse(is.null(pars$zeta), NA, pars$zeta)
-  )
-  names(par_vector) <- c("k", "a", "b", "zeta", "theta")
-  if (settings$fecundity_fn == "exponential") par_vector$zeta = pars$zeta
-  if (settings$lik_distrib == "negbin") par_vector = c(par_vector, pars$theta)
-
   # Fit the model
-  fit <- optim(par_vector, calculate_negloglik, 
+  fit <- optim(pars_vector, 
+               calculate_negloglik, 
                method = settings$optimizer,
-               control = list(trace = TRUE, maxit = 5000), disp_data = disp_data,
+               control = list(trace = 1, maxit = 5000), 
+               disp_data = disp_data,
                settings = settings)
   
-  # Convert results back to named format
-  fit$par_names <- setNames(as.list(fit$par), par_structure)
-
-  # Old version without wrapper 
-  # CHECK WHAT FORMAT "pars" HAS TO BE IN -- MAY NEED TO TRANSLATE GOING IN AND OUT TO LIST FORMAT? 
-#  fit <- optim(pars, method = settings$optimizer, control = list(trace = TRUE, maxit = 10000), calc_negloglik, n_overstory_trees = disp_data$n_overstory_trees, dist_vector = disp_data$dist_vector, overstory_tree_size = disp_data$overstory_tree_size, pos = disp_data$pos, seedling_counts = disp_data$seedling_counts, seedling_plot_area = disp_data$seedling_plot_area, lik_distrib = settings$lik_distrib, disp_kernel = settings$disp_kernel, fecundity_fn = settings$fecundity_fn) 
-  
   # Convert parameter estimates back to named format
-  estimates <- setNames(as.list(fit$par), par_structure)
+  estimates <- as.list(fit$par)
   
-  # Calculate fitted values (you'll need to implement this part)
-  par_list <- setNames(as.list(par_vec), par_structure)
-  fitted_values <- calculate_expected_counts(pars = par_list, 
+  # Calculate fitted values
+  fitted_values <- calculate_expected_counts(pars = estimates, 
         disp_data = disp_data,
         settings = settings)
   
@@ -173,7 +191,7 @@ fit_model_ml <- function(pars, disp_data, settings)
     message = fit$message,
     counts = fit$counts,
     
-    # Raw optim output (for advanced users/debugging)
+    # Raw optim output 
     optim_output = fit,
     
     # Model metadata
