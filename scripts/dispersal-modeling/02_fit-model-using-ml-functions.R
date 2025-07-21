@@ -9,13 +9,13 @@ calculate_expected_counts <- function(pars, disp_data, settings) {
   # Combine into expected counts per plot
   expected_counts <- numeric(disp_data$n_plots)
   
-  for (i in seq_along(disp_data$n_plots)) {
+  for (i in seq_along(disp_data$seedling_counts)) {
 
     # Use indices to get the trees & their size & distances for plot i 
     start_idx <- disp_data$pos[i]
     end_idx <- disp_data$pos[i] + disp_data$n_overstory_trees[i] - 1
     plot_trees <- start_idx:end_idx
-    heights_for_plot <- disp_data$overstory_tree_size[plot_trees]
+    heights_for_plot <- disp_data$tree_size_vector[plot_trees]
     distances_for_plot <- disp_data$dist_vector[plot_trees]
 
     # Calculate fecundity for each tree in plot i
@@ -27,7 +27,7 @@ calculate_expected_counts <- function(pars, disp_data, settings) {
                                            kernel_type = settings$disp_kernel)
     
     # Calculate expected seedling count
-    expected_counts[i]  <- tree_fecundity * dispersal_probs * seedling_plot_area
+    expected_counts[i]  <- sum(tree_fecundity * dispersal_probs * seedling_plot_area)
   }
   
   return(expected_counts)
@@ -44,7 +44,7 @@ calculate_fecundity <- function(height, pars, fecundity_type) {
 calculate_dispersal <- function(distance, pars, kernel_type) {
   k = pars$k
   a = pars$a
-  switch(kernel_type,
+  disp_probs = switch(kernel_type,
          "exppow" = exp(-(distance/a)^k)*k / 
                           (2 * pi * a^2 * gamma(2/k)), 
          "2Dt" = ((k-1) / (pi * a^2)) * ((1 + distance^2) / a^2)^(-k),
@@ -55,6 +55,7 @@ calculate_dispersal <- function(distance, pars, kernel_type) {
                           exp(-(k*(distance-a)^2)/(2*a^2*distance)) 
                           #(Katul et al. 2005, American Naturalist 166: 368-381)
   )
+  return(disp_probs)
 }
 
 calculate_negloglik <- function(pars, disp_data, settings) {
@@ -62,11 +63,11 @@ calculate_negloglik <- function(pars, disp_data, settings) {
   observed = disp_data$seedling_counts
   expected = calculate_expected_counts(pars, disp_data, settings)
     
-  nll = switch(distrib_type,
+  nll = switch(settings$lik_distrib,
          "pois" = sum(dpois(observed, expected, log = TRUE)),
          "negbin" = sum(dnbinom(observed, size = pars$theta, mu = expected, log = TRUE))
   )
-  
+  return(nll)
 }
 
 ### Function to fit the model using optim
@@ -94,6 +95,7 @@ fit_model_ml <- function(pars, disp_data, settings)
   #                  and n_overstory_trees gives number of trees per plot. 
   #                - seedling_plot_area = area of plots (m)
   #                - seedling count = number of trees in each plot
+  #                - n_plots = number of field plots with seedling counts. 
   #
   #VALUE: list with components:
   #
@@ -111,48 +113,39 @@ fit_model_ml <- function(pars, disp_data, settings)
   # Convert list of parameters to the vector form needed by optim
   #   Note this set depends on which model is fitted and number of parameters in it
   
-  # Define parameter structure based on model settings
-  get_par_structure <- function(settings) {
-    par_names <- c("k", "a")  # dispersal kernel parameters
-    
-    # Add fecundity parameters based on function type
-    if (settings$fecundity_fn == "linear") {
-      par_names <- c(par_names, "b")
-    } else if (settings$fecundity_fn == "exponential") {
-      par_names <- c(par_names, "b", "zeta")
-    }
-    
-    # Add dispersion parameter if using negative binomial
-    if (settings$lik_distrib == "negbin") {
-      par_names <- c(par_names, "theta")
-    }
-    
-    return(par_names)
-  }
+  # Check that parameter structure matches model settings
+  par_names = names(pars)
+  # Universal parameters
+  try(if(is_null(pars$a)) stop("Parameter a missing."))
+  try(if(is_null(pars$b)) stop("Parameter b missing."))
+  try(if(is_null(pars$k)) stop("Parameter k missing."))
   
-  # Get the parameter structure for this model
-  par_structure <- get_par_structure(settings)
+  # Additional parameters 
+  if (settings$fecundity_fn == "exponential") try(if(is_null(pars$zeta)) stop("Parameter zeta missing."))
+  if (settings$lik_distrib == "negbin") try(if(is_null(pars$theta)) stop("Parameter theta missing."))
+  
+  
   
   # Convert named list to vector, ensuring correct order
-  par_vector <- sapply(par_structure, function(name) pars[[name]])
-  
-  # Wrapper function that converts vector back to named list
-  calc_negloglik_wrapper <- function(par_vec, disp_data, settings) {
-    par_list <- setNames(as.list(par_vec), par_structure)
-    nll = calc_negloglik(pars = par_list, 
-                   disp_data = disp_data,
-                   settings = settings)
-    return(nll)
-  }
-  
+  #   Order is always "k", "a", "b", "zeta", "theta"
+  #   If parameters are not needed for this model, their value is NA
+  par_vector <- vector(mode = "numeric", length = 5)
+  par_vector[1:5] <- c(pars$k, pars$a, pars$b, 
+                       ifelse(is.null(pars$zeta), NA, pars$zeta),
+                       ifelse(is.null(pars$zeta), NA, pars$zeta)
+  )
+  names(par_vector) <- c("k", "a", "b", "zeta", "theta")
+  if (settings$fecundity_fn == "exponential") par_vector$zeta = pars$zeta
+  if (settings$lik_distrib == "negbin") par_vector = c(par_vector, pars$theta)
+
   # Fit the model
-  fit <- optim(par_vector, calc_negloglik_wrapper, 
+  fit <- optim(par_vector, calculate_negloglik, 
                method = settings$optimizer,
-               control = list(trace = TRUE, maxit = 10000), disp_data = disp_data,
+               control = list(trace = TRUE, maxit = 5000), disp_data = disp_data,
                settings = settings)
   
   # Convert results back to named format
-  fit$par_named <- setNames(as.list(fit$par), par_structure)
+  fit$par_names <- setNames(as.list(fit$par), par_structure)
 
   # Old version without wrapper 
   # CHECK WHAT FORMAT "pars" HAS TO BE IN -- MAY NEED TO TRANSLATE GOING IN AND OUT TO LIST FORMAT? 
@@ -197,6 +190,8 @@ fit_model_ml <- function(pars, disp_data, settings)
   return(results)
 }
 
+
+# Older function that uses Derek's pre-calculated data values 
 get_disp_data <- function(dataset_name, data_dir) # corresponding data files in datadir/prepped-for-stan/{dataset_name}
   { 
   
