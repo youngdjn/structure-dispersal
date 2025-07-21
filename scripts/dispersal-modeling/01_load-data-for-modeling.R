@@ -84,7 +84,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
     mutate(size = Z) # "size" is just the height
   
   overstory_trees = overstory_trees %>%
-    select(id = treeID, x, y, size, elevation, Z) |>
+    select(id = treeID, x, y, size, elevation, tree_density, Z) |>
     mutate(elevation_top = elevation + Z)
   
   overstory_tree_size <- overstory_trees$size
