@@ -50,7 +50,7 @@ calculate_dispersal <- function(distance, pars, kernel_type) {
          "exppow" = exp(-(distance/a)^k)*k / 
                           (2 * pi * a^2 * gamma(2/k)), 
          "2Dt" = ((k-1) / (pi * a^2)) * ((1 + distance^2) / a^2)^(-k),
-         "lognormal" = dlnorm(distance, meanlog = mu, sdlog = sigma) / 
+         "lognormal" = dlnorm(distance, meanlog = a, sdlog = k) / 
                           (2 * pi * distance), 
                           # 1D lognormal with correction to convert to 2D
          "wald" = k^0.5*(2*pi)^(-1.5) * distance^(-2.5) * 
@@ -296,4 +296,40 @@ get_disp_data <- function(dataset_name, data_dir) # corresponding data files in 
   
   return(data_list)
 }
+
+
+# Function to convert the model options grid settings to input for model fitting 
+fit_model_wrapper_fn <- function(model_options_grid) {
+  
+  settings_to_use = list(lik_distrib = NULL, disp_kernel = NULL, 
+                         fecundity_fn = NULL, optimizer = NULL) 
+  n_models <- nrow(model_options_grid)
+  model_list <- list(n_models) 
+  for (i in 1:n_models) {
+    print(paste("Running model", i, "of", n_models))
+    # supply settings values 
+    settings_to_use$lik_distrib = model_options_grid$lik_distrib_vals[i]
+    settings_to_use$fecundity_fn = model_options_grid$fecundity_fn_vals[i]
+    settings_to_use$disp_kernel = model_options_grid$disp_kernel_vals[i]
+    
+    # set initial parameters depending on model options 
+    pars_inits <- list("k" = 1, "a" = 10, "b" = 10)
+    parscale = c(1, 10, 10)
+    if (settings_to_use$fecundity_fn == "exponential") {
+      pars_inits$zeta = 1
+      parscale = c(parscale, 1)
+    }
+    if (settings_to_use$lik_distrib == "negbin") {
+      pars_inits$theta = 1
+      parscale = c(parscale, 1)
+    }
+    model_list[[i]] <- fit_model_ml(pars = pars_inits, 
+                                    fixed_pars = NULL, 
+                                    parscale = parscale,
+                                    disp_data = disp_data,
+                                    settings = settings_to_use)
+  }
+  return(model_list) 
+}
+
 
