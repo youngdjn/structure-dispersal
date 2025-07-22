@@ -105,7 +105,7 @@ calculate_negloglik <- function(pars_vector, disp_data, settings) {
 }
 
 ### Function to fit the model using optim
-fit_model_ml <- function(pars, disp_data, settings)
+fit_model_ml <- function(pars, fixed_pars, disp_data, settings)
 {
   #ML fitting of an inverse model with source and path effects
   #ARGUMENTS:
@@ -166,17 +166,41 @@ fit_model_ml <- function(pars, disp_data, settings)
   par_structure <- get_par_structure(settings)
   pars_vector <- sapply(par_structure, function(name) pars[[name]])
   
-  # TESTING THIS OPTION -- SANN with constraints... 
-  # NEXT SET UP CONSTRAINT OPTIONS FOR ALL PARAMS 
+  # Set up bounds for fixed parameters
+  if (!is.null(fixed_pars)) {
+    # start by fixing all parameters
+    lower <- upper <- pars_vector 
+    
+    # Then for free parameters parameter-specific bounds
+    free_pars <- setdiff(par_structure, fixed_pars)
+    if ("k" %in% free_pars) {
+      lower[1] <- 1e-10 # close to 0
+      upper[1] <- 3.0
+    }
+    if ("a" %in% free_pars) {
+      lower[2] <- 1e-10 # close to 0
+      upper[2] <- 100
+    }
+    if ("b" %in% free_pars) {
+      lower[3] <- 1e-10 # close to 0
+      upper[3] <- 100
+    }
+    if ("zeta" %in% free_pars) {
+      lower[1] <- -Inf
+      upper[1] <- Inf
+    }
+    if ("theta" %in% free_pars) {
+      lower[1] <- 1e-10 # close to 0
+      upper[1] <- Inf 
+    }
+  }
   
-    # Optimize the parameters using sannbox with constraints
-    lower = c(0.7, 1, 1)
-    upper = c(0.7, 1000, 100)
-    fit <- sannbox(par = pars_vector,
-                   fn = calculate_negloglik,
-                   control = list(trace = 1, maxit = 5000, lower = lower, upper = upper),
-                   disp_data = disp_data,
-                   settings = settings)
+  # Optimize the parameters using sannbox with constraints
+  fit <- sannbox(par = pars_vector,
+                fn = calculate_negloglik,
+                control = list(trace = 1, maxit = 5000, lower = lower, upper = upper),
+                disp_data = disp_data,
+                settings = settings)
   
   
 
