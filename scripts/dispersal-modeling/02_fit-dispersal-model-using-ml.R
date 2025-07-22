@@ -35,24 +35,24 @@ disp_data = get_dispdata(data_dir = disp_data_dir,
 
 # Alternatively: simulate a dataset 
 
-# disp_data = simulate_dispdata(domain_size = 800, # length of one side of simulated square "domain" 
-#   center_buffer = 200, # distance from central area with trees to edge of "domain" 
+# disp_data = simulate_dispdata(domain_size = 800, # length of one side of simulated square "domain"
+#   center_buffer = 200, # distance from central area with trees to edge of "domain"
 #   trees_per_hectare = 100, # density of trees to simulate
 #   n_plots = 200, # number of seedling plots to simulate
 #   a = 30,     # scale parameter for exppow dispersal kernel
 #   k = 0.5,    # shape parameter for exppow dispersal kernel
-#   b = 10,     # fecundity coefficient 
+#   b = 10,     # fecundity coefficient
 #   seedling_plot_area = 201,  # size of each plot in m²
-#   elev_range = 100, # elevation range (m) for simulated DEM 
-#   min_tree_height = 10, # min tree height (m) for simulation 
-#   max_tree_height = 30, # max tree height (m) for simulation 
-#   density_raster_resolution = 15, # grid cell size for calculating local tree density 
+#   elev_range = 100, # elevation range (m) for simulated DEM
+#   min_tree_height = 10, # min tree height (m) for simulation
+#   max_tree_height = 30, # max tree height (m) for simulation
+#   density_raster_resolution = 15, # grid cell size for calculating local tree density
 #   tree_distance_cutoff = 300 # ignore trees farther than this from a plot
 # )
 
 # Set some diffent initial parameter values to check convergence
-startpars1 = list(b = 10, k = 0.5, a = 10)
-startpars2 = list(b = 10, k = 0.5, a = 10, theta = 5)
+startpars1 = list(k = 0.5, a = 10, b = 10, theta = 1)
+startpars2 = list(k = 0.9, a = 10, b = 1, theta = 2)
 
 
 # settings: a named list containing the values for all the options 
@@ -61,39 +61,30 @@ startpars2 = list(b = 10, k = 0.5, a = 10, theta = 5)
 #    - disp_kernel = which dispersal kernel to use (exppow, 2Dt, lognomal, wald)
 #    - fecundity_fn = which fecundity function to use (linear or exponential)
 #    - optimizer = which optimizer to tell optim to use (BFGS, Nelder-Mead, etc)
-settings_to_use = list(lik_distrib = "pois", 
+#                   NOTE: Currently this only uses SANN to be able to constrain 
+#                                some params, so this setting is ignored.
+settings_to_use = list(lik_distrib = "negbin", 
                        disp_kernel = "exppow", 
                        fecundity_fn = "linear", 
                        optimizer = "BFGS")
 
 # Check likelihood calculation
-calculate_negloglik(pars = c(startpars1$b, startpars1$k, startpars1$a), 
+pars_vector <- unlist(startpars1)
+calculate_negloglik(pars_vector = pars_vector, 
                disp_data = disp_data, settings = settings_to_use)
-# It's sensitive to extreme values of k and a (gives NLL = Inf)
 
-m1 = fit_model_optim(startpars1, 
-                     n_overstory_trees = disp_data$n_overstory_trees, 
-                     dist_vector = disp_data$dist_vector, 
-                     overstory_tree_size = disp_data$overstory_tree_size, 
-                     pos = disp_data$pos, 
-                     seedling_counts = disp_data$seedling_counts, 
-                     seedling_plot_area = disp_data$seedling_plot_area,
-                     lik_distrib = "pois")
+# Fit models 
+m1 = fit_model_ml(pars = startpars1, fixed_pars = "a", parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
 
-m2 = fit_model_optim(startpars2, 
-                     n_overstory_trees = disp_data$n_overstory_trees, 
-                     dist_vector = disp_data$dist_vector, 
-                     overstory_tree_size = disp_data$overstory_tree_size, 
-                     pos = disp_data$pos, 
-                     seedling_counts = disp_data$seedling_counts, 
-                     seedling_plot_area = disp_data$seedling_plot_area, 
-                     lik_distrib = "negbin")
+m2 = fit_model_ml(pars = startpars2, fixed_pars = "a",  parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
 
 m1$estimates
 m1$negloglik
 
 m2$estimates
 m2$negloglik
+
+# Pretty good results if we set the parscale argument, otherwise not necessarily consistent 
 
 # some converge to reasonable values, some don't 
 # Going to negbin from poisson improves deviance a lot, but doesn't seem to help convergence. 
@@ -109,7 +100,6 @@ obspred_data$resids = obspred_data$observed-obspred_data$fitted
 qqnorm(obspred_data$resids)
 plot(resids~fitted, obspred_data)
 hist(obspred_data$resids)
-
 
 # plot dispersal kernel based on fitted parameters
 kernel_plot_data <- data.frame(Distance = 1:800, Probability = disp_prob(k = m$estimates$k, a = m$estimates$a, dist_vector = 1:800))
