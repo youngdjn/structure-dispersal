@@ -74,9 +74,9 @@ calculate_negloglik(pars_vector = pars_vector,
                disp_data = disp_data, settings = settings_to_use)
 
 # Fit models 
-m1 = fit_model_ml(pars = startpars1, fixed_pars = "a", parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
+m1 = fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
 
-m2 = fit_model_ml(pars = startpars2, fixed_pars = "a",  parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
+m2 = fit_model_ml(pars = startpars2, fixed_pars = NULL,  parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
 
 m1$estimates
 m1$negloglik
@@ -89,4 +89,77 @@ m2$negloglik
 # some converge to reasonable values, some don't 
 # Going to negbin from poisson improves deviance a lot, but doesn't seem to help convergence. 
 
+
+##### Compare among dispersal kernels and fecundity functions 
+
+# Choose a species and site (only one at a time for now)
+site_name = "delta"
+focal_species = "PIPJ"
+
+# Choose tree distance cutoff in m (beyond this assume zero seed dispersal)
+tree_distance_cutoff = 500 
+
+# Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
+if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
+
+# For now set data filepaths manually in function call
+overstory_tree_filepath = "predicted-treecrowns-w-predicted-species/delta.geojson"
+
+
+# Get the data for this site and species 
+disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. "/ofo-share/str-disp_data")
+              site_name = site_name, 
+              focal_species = focal_species, 
+              overstory_tree_filepath = "predicted-treecrowns-w-predicted-species/delta.geojson",
+              seedling_plot_filepath = "regen-plots-standardized/delta.gpkg",
+              target_crs = 3310, 
+              seedling_plot_area = 201,
+              min_tree_height = 10, # ignore trees shorter than this
+              density_raster_resolution = 10, 
+              tree_distance_cutoff = tree_distance_cutoff # ignore trees farther than this from a plot
+) 
+
+# Set up a grid of values for the parameters and settings 
+names(settings)
+lik_distrib_vals = c("pois", "negbin")
+disp_kernel_vals = c("exppow", "2Dt", "lognormal", "wald")
+fecundity_fn_vals = c("linear", "exponential")
+
+model_options_grid = expand_grid(disp_kernel_vals, lik_distrib_vals, fecundity_fn_vals)
+
+model_fits <- fit_model_wrapper_fn(model_options_grid)
+
+# Function to convert the model options grid settings to input for model fitting 
+fit_model_wrapper_fn <- function(model_options_grid) {
+
+  settings_to_use = list(lik_distrib = NULL, disp_kernel = NULL, 
+                         fecundity_fn = NULL, optimizer = NULL) 
+  n_models <- nrow(model_options_grid)
+  model_list <- list(n_models) 
+  for (i in 1:n_models) {
+    print(paste("Running model", i, "of", n_models))
+    # supply settings values 
+    settings_to_use$lik_distrib = model_options_grid$lik_distrib_vals[i]
+    settings_to_use$fecundity_fn = model_options_grid$fecundity_fn_vals[i]
+    settings_to_use$disp_kernel = model_options_grid$disp_kernel_vals[i]
+    
+    # set initial parameters depending on model options 
+    pars_inits <- list("k" = 1, "a" = 10, "b" = 10)
+    parscale = c(1, 10, 10)
+    if (settings_to_use$fecundity_fn == "exponential") {
+      pars_inits$zeta = 1
+      parscale = c(parscale, 1)
+    }
+    if (settings_to_use$lik_distrib == "negbin") {
+      pars_inits$theta = 1
+      parscale = c(parscale, 1)
+    }
+    model_list[[i]] <- fit_model_ml(pars = pars_inits, 
+                                    fixed_pars = NULL, 
+                                    parscale = parscale,
+                                    disp_data = disp_data,
+                                    settings = settings_to_use)
+  }
+  return(model_list) 
+}
 
