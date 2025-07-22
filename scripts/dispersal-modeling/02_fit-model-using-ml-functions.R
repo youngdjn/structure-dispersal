@@ -99,8 +99,8 @@ calculate_negloglik <- function(pars_vector, disp_data, settings) {
   # Calculate NLL
   nll = switch(settings$lik_distrib,
          "pois" = -sum(dpois(observed, expected, log = TRUE)),
-         "negbin" = -sum(dnbinom(observed, size = pars$theta, mu = expected, log = TRUE))
-  )
+         "negbin" = -sum(dnbinom(observed, size = pars$theta, mu = expected, log = TRUE)))
+  if (is.nan(nll)) nll = 1e100
   return(nll)
 }
 
@@ -114,6 +114,8 @@ fit_model_ml <- function(pars, disp_data, settings)
   #           of the dispersal kernel (k, a), fecundity function (b, zeta), 
   #           and the negative binomial likelihood dispersion parameter (theta)
   # 
+  # fixed_pars: vector of parameter names to hold constant at their starting value 
+  #
   # settings: a named list containing the values for all the options 
   #    available for model fitting. These include: 
   #    - lik_distrib = the data distribution for the model (pois or negbin)
@@ -141,6 +143,8 @@ fit_model_ml <- function(pars, disp_data, settings)
   #counts,convergence and message: the respective output of the optim function
   #           used to fit the inverse models
   
+  require(optimx)
+  
   # Save the model call
   cl <- match.call()
   
@@ -162,13 +166,21 @@ fit_model_ml <- function(pars, disp_data, settings)
   par_structure <- get_par_structure(settings)
   pars_vector <- sapply(par_structure, function(name) pars[[name]])
   
-  # Fit the model
-  fit <- optim(pars_vector, 
-               calculate_negloglik, 
-               method = settings$optimizer,
-               control = list(trace = 1, maxit = 5000), 
-               disp_data = disp_data,
-               settings = settings)
+  # TESTING THIS OPTION -- SANN with constraints... 
+  # NEXT SET UP CONSTRAINT OPTIONS FOR ALL PARAMS 
+  
+    # Optimize the parameters using sannbox with constraints
+    lower = c(0.7, 1, 1)
+    upper = c(0.7, 1000, 100)
+    fit <- sannbox(par = pars_vector,
+                   fn = calculate_negloglik,
+                   control = list(trace = 1, maxit = 5000, lower = lower, upper = upper),
+                   disp_data = disp_data,
+                   settings = settings)
+  
+  
+
+
   
   # Convert parameter estimates back to named format
   estimates <- as.list(fit$par)
@@ -205,7 +217,7 @@ fit_model_ml <- function(pars, disp_data, settings)
   # Optionally add a class for custom print/summary methods
   class(result) <- "fit_model_ml"
 
-  return(results)
+  return(result)
 }
 
 
