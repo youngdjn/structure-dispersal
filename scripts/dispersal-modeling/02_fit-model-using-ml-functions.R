@@ -3,7 +3,8 @@
 
 # Start with an example simple model (exppow, with a one-parameter fecundity function)
 
-# Helper function that orchestrates the calculation
+# Function that applies dispersal and fecundity kernels to get the expected counts 
+#     or fitted values for a given set of parameter values. 
 calculate_expected_counts <- function(pars, disp_data, settings) {
   
   # Combine into expected counts per plot
@@ -42,18 +43,19 @@ calculate_fecundity <- function(height, pars, fecundity_type) {
 }
 
 calculate_dispersal <- function(distance, pars, kernel_type) {
-  k = pars$k
-  a = pars$a
+  distance <- pmax(distance, 1e-6) # avoid zero distance values
+  k = pars$k # shape or dispersion parameter
+  a = pars$a # scale or mean parameter 
   disp_probs = switch(kernel_type,
          "exppow" = exp(-(distance/a)^k)*k / 
                           (2 * pi * a^2 * gamma(2/k)), 
          "2Dt" = ((k-1) / (pi * a^2)) * ((1 + distance^2) / a^2)^(-k),
-                          # NEED TO CHECK THIS (Katul vs Marchand),
-         "lognormal" = exp(-((log(distance)-mu)^2)/ 
-                          (2*k^2))/(k*(2*pi)^(3/2)*distance^2), # CHECK
+         "lognormal" = dlnorm(distance, meanlog = mu, sdlog = sigma) / 
+                          (2 * pi * distance), 
+                          # 1D lognormal with correction to convert to 2D
          "wald" = k^0.5*(2*pi)^(-1.5) * distance^(-2.5) * 
                           exp(-(k*(distance-a)^2)/(2*a^2*distance)) 
-                          #(Katul et al. 2005, American Naturalist 166: 368-381)
+                          # See Katul et al. 2005, American Naturalist 166: 368-381
   )
   return(disp_probs)
 }
@@ -105,7 +107,7 @@ calculate_negloglik <- function(pars_vector, disp_data, settings) {
 }
 
 ### Function to fit the model using optim
-fit_model_ml <- function(pars, fixed_pars, disp_data, settings)
+fit_model_ml <- function(pars, fixed_pars = NULL, parscale = NULL, disp_data, settings)
 {
   #ML fitting of an inverse model with source and path effects
   #ARGUMENTS:
@@ -122,6 +124,8 @@ fit_model_ml <- function(pars, fixed_pars, disp_data, settings)
   #    - disp_kernel = which dispersal kernel to use (exppow, 2Dt, lognomal, wald)
   #    - fecundity_fn = which fecundity function to use (linear or exponential)
   #    - optimizer = which optimizer to tell optim to use (BFGS, Nelder-Mead, etc)
+  #                   NOTE: Currently this only uses SANN to be able to constrain 
+  #                                some params, so this setting is ignored.
   #
   # disp_data: a data object returned from get_disp_data() 
   #              or simulate_disp_data(). Must include: 
@@ -166,45 +170,48 @@ fit_model_ml <- function(pars, fixed_pars, disp_data, settings)
   par_structure <- get_par_structure(settings)
   pars_vector <- sapply(par_structure, function(name) pars[[name]])
   
-  # Set up bounds for fixed parameters
-  if (!is.null(fixed_pars)) {
-    # start by fixing all parameters
-    lower <- upper <- pars_vector 
-    
-    # Then for free parameters parameter-specific bounds
-    free_pars <- setdiff(par_structure, fixed_pars)
-    if ("k" %in% free_pars) {
-      lower[1] <- 1e-10 # close to 0
-      upper[1] <- 3.0
-    }
-    if ("a" %in% free_pars) {
-      lower[2] <- 1e-10 # close to 0
-      upper[2] <- 100
-    }
-    if ("b" %in% free_pars) {
-      lower[3] <- 1e-10 # close to 0
-      upper[3] <- 100
-    }
-    if ("zeta" %in% free_pars) {
-      lower[1] <- -Inf
-      upper[1] <- Inf
-    }
-    if ("theta" %in% free_pars) {
-      lower[1] <- 1e-10 # close to 0
-      upper[1] <- Inf 
-    }
+  # start by setting parameter-specific bounds
+  lower <- upper <- vector(mode = "numeric", length = length(pars_vector))
+  idx <- match("k", par_structure)
+  if (!is.na(idx)) { 
+    lower[idx] <- 1e-10 # close to 0
+    upper[idx] <- 3.0
+  }
+  idx <- match("a", par_structure)
+  if (!is.na(idx)) { 
+    lower[idx] <- 1e-10 # close to 0
+    upper[idx] <- 100
+  }
+  idx <- match("b", par_structure)
+  if (!is.na(idx)) { 
+    lower[idx] <- 1e-10 # close to 0
+    upper[idx] <- 1000
+  }
+  idx <- match("zeta", par_structure)
+  if (!is.na(idx)) { 
+    lower[idx] <- -Inf # close to 0
+    upper[idx] <- Inf
+  }
+  idx <- match("theta", par_structure)
+  if (!is.na(idx)) { 
+    lower[idx] <- 1e-10 # close to 0
+    upper[idx] <- Inf
   }
   
+  # Set bounds for fixed parameters 
+  if (!is.null(fixed_pars)) {
+    idx <- match(fixed_pars, par_structure)
+    lower[idx] <- upper[idx] <- pars_vector[idx]
+  }
+
   # Optimize the parameters using sannbox with constraints
   fit <- sannbox(par = pars_vector,
                 fn = calculate_negloglik,
-                control = list(trace = 1, maxit = 5000, lower = lower, upper = upper),
+                control = list(trace = 1, maxit = 5000, 
+                               lower = lower, upper = upper, 
+                               parscale =parscale),
                 disp_data = disp_data,
                 settings = settings)
-  
-  
-
-
   
   # Convert parameter estimates back to named format
   estimates <- as.list(fit$par)
@@ -228,7 +235,7 @@ fit_model_ml <- function(pars, fixed_pars, disp_data, settings)
     counts = fit$counts,
     
     # Raw optim output 
-    optim_output = fit,
+    #optim_output = fit,
     
     # Model metadata
     model_info = list(
