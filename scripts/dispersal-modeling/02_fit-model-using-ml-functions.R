@@ -28,7 +28,8 @@ calculate_expected_counts <- function(pars, disp_data, settings) {
                                            kernel_type = settings$disp_kernel)
     
     # Calculate expected seedling count
-    expected_counts[i]  <- sum(tree_fecundity * dispersal_probs * seedling_plot_area)
+    expected_counts[i]  <- sum(tree_fecundity * dispersal_probs * 
+                                 disp_data$seedling_plot_area)
   }
   
   return(expected_counts)
@@ -147,7 +148,7 @@ fit_model_ml <- function(pars, fixed_pars = NULL, parscale = NULL, disp_data, se
   #counts,convergence and message: the respective output of the optim function
   #           used to fit the inverse models
   
-  require(optimx)
+  require(pomp)
   
   # Save the model call
   cl <- match.call()
@@ -330,6 +331,51 @@ fit_model_wrapper_fn <- function(model_options_grid) {
                                     settings = settings_to_use)
   }
   return(model_list) 
+}
+
+# Function to convert the model options grid settings to input for model fitting 
+# This one uses foreach and doParallel to run the models in parallel
+fit_model_wrapper_fn_parallel <- function(model_options_grid, disp_data) {
+  require(foreach)
+  require(doParallel)
+  
+  # Set up cluster
+  n_cores <- detectCores()
+  cluster <- makeCluster(n_cores - 2)
+  registerDoParallel(cluster)
+  
+  settings_to_use = list(lik_distrib = NULL, disp_kernel = NULL, 
+                         fecundity_fn = NULL, optimizer = NULL) 
+  n_models <- nrow(model_options_grid)
+  model_list <- list(n_models) 
+  
+  model_list <- foreach(i = 1:n_models, .export = c("disp_data", "fit_model_ml", "calculate_negloglik", "calculate_expected_counts", "get_par_structure", "calculate_dispersal", "calculate_fecundity")) %dopar% {
+    # supply settings values 
+    settings_to_use$lik_distrib = model_options_grid$lik_distrib_vals[i]
+    settings_to_use$fecundity_fn = model_options_grid$fecundity_fn_vals[i]
+    settings_to_use$disp_kernel = model_options_grid$disp_kernel_vals[i]
+    
+    # set initial parameters depending on model options 
+    pars_inits <- list("k" = 1, "a" = 10, "b" = 10)
+    parscale = c(1, 10, 10)
+    if (settings_to_use$fecundity_fn == "exponential") {
+      pars_inits$zeta = 1
+      parscale = c(parscale, 1)
+    }
+    if (settings_to_use$lik_distrib == "negbin") {
+      pars_inits$theta = 1
+      parscale = c(parscale, 1)
+    }
+    model_list[[i]] <- fit_model_ml(pars = pars_inits, 
+                                    fixed_pars = NULL, 
+                                    parscale = parscale,
+                                    disp_data = disp_data,
+                                    settings = settings_to_use)
+  }
+  
+  # Stop the cluster and return results
+  stopCluster(cl = cluster)
+  return(model_list)
 }
 
 
