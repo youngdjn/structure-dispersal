@@ -299,8 +299,12 @@ get_disp_data <- function(dataset_name, data_dir) # corresponding data files in 
 }
 
 
-# Function to convert the model options grid settings to input for model fitting 
+# Function to use a data frame representing a grid of model settings (made with expand.grid()) to fit models to the settings in each row of the data frame. 
 fit_model_wrapper_fn <- function(model_options_grid) {
+  #
+  #@model_options_grid -- data frame the rows of which contain model settings
+  #
+  #Value: a list of the output from fitted dispersal models, one per row of the model_options_grid data frame.
   
   settings_to_use = list(lik_distrib = NULL, disp_kernel = NULL, 
                          fecundity_fn = NULL, optimizer = NULL) 
@@ -333,9 +337,15 @@ fit_model_wrapper_fn <- function(model_options_grid) {
   return(model_list) 
 }
 
-# Function to convert the model options grid settings to input for model fitting 
-# This one uses foreach and doParallel to run the models in parallel
+# Function to use a data frame representing a grid of model settings (made with expand.grid()) to fit models to the settings in each row of the data frame. 
+# Uses foreach and doParallel to run the models in parallel. 
 fit_model_wrapper_fn_parallel <- function(model_options_grid, disp_data) {
+  #
+  #@model_options_grid -- data frame the rows of which contain model settings
+  #@disp_data -- dispersal modeling data object usually from load_dispdata()
+  #
+  #Value: a list of the output from fitted dispersal models, one per row of the model_options_grid data frame.
+  #
   require(foreach)
   require(doParallel)
   
