@@ -12,18 +12,19 @@ source("./scripts/dispersal-modeling/02_fit-model-using-ml-functions.R")
 # Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
-# Load dataset from one fire 
+# Choose site and species 
+site_name = "delta"
+focal_species = "PIPJ"
+# NOTE FOR NOW THE PLOT DATA IS NOT BROKEN OUT BY SPECIES EXCEPT FOR DELTA! 
 
-# NOTE FOR NOW PROCEED WITH JUST DELTA -- NEED TO STRAIGHTEN OUT DATA FILE STRUCTURE!!!! 
-#   ALL THESE FILE PATHS ARE PROVISIONAL JUST TO TEST FUNCTIONS 
-
+# Load data 
 disp_data_dir = file.path(data_dir)
 disp_data = get_dispdata(data_dir = disp_data_dir, 
-                          #site_name = "delta", # e.g. "delta"
+                          site_name = "valley", # e.g. "delta"
                           focal_species = "ABCO", # 4-letter code
-                          overstory_tree_filepath = "predicted-treecrowns-w-predicted-species/delta.geojson",
+                          overstory_tree_filepath = paste0("predicted-treecrowns-w-predicted-species/", site_name, ".geojson"),
                               # relative to `datadir`
-                          seedling_plot_filepath = "regen-plots-standardized/delta.gpkg", 
+                          seedling_plot_filepath = paste0("regen-plots-standardized/", site_name, ".gpkg"), 
                               # relative to `datadir`
                           target_crs = 3310, # target CRS (to project the raw data sources to)
                           seedling_plot_area = 201, # area of the plot in sq m
@@ -54,64 +55,24 @@ disp_data = get_dispdata(data_dir = disp_data_dir,
 startpars1 = list(k = 0.5, a = 10, b = 10, theta = 1)
 startpars2 = list(k = 0.9, a = 10, b = 1, theta = 2)
 
-
-# settings: a named list containing the values for all the options 
-#    available for model fitting. These include: 
-#    - lik_distrib = the data distribution for the model (pois or negbin)
-#    - disp_kernel = which dispersal kernel to use (exppow, 2Dt, lognomal, wald)
-#    - fecundity_fn = which fecundity function to use (linear or exponential)
-#    - optimizer = which optimizer to tell optim to use (BFGS, Nelder-Mead, etc)
-#                   NOTE: Currently this only uses SANN to be able to constrain 
-#                                some params, so this setting is ignored.
-settings_to_use = list(lik_distrib = "negbin", 
-                       disp_kernel = "exppow", 
-                       fecundity_fn = "linear", 
-                       optimizer = "BFGS")
-
-# Check likelihood calculation
-pars_vector <- unlist(startpars1)
-calculate_negloglik(pars_vector = pars_vector, 
-               disp_data = disp_data, settings = settings_to_use)
-
-# Fit models 
-m1 = fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
-
-m2 = fit_model_ml(pars = startpars2, fixed_pars = NULL,  parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
-
-m1$estimates
-m1$negloglik
-
-m2$estimates
-m2$negloglik
-
-# Pretty good results if we set the parscale argument, otherwise not necessarily consistent 
-
-# some converge to reasonable values, some don't 
-# Going to negbin from poisson improves deviance a lot, but doesn't seem to help convergence. 
-
-
 ##### Compare among dispersal kernels and fecundity functions 
 
 # Choose a species and site (only one at a time for now)
 site_name = "delta"
-focal_species = "PIPJ"
+focal_species = "ALL"
 
 # Choose tree distance cutoff in m (beyond this assume zero seed dispersal)
-tree_distance_cutoff = 500 
+tree_distance_cutoff = 300 
 
 # Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
-
-# For now set data filepaths manually in function call
-overstory_tree_filepath = "predicted-treecrowns-w-predicted-species/delta.geojson"
-
 
 # Get the data for this site and species 
 disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. "/ofo-share/str-disp_data")
               site_name = site_name, 
               focal_species = focal_species, 
-              overstory_tree_filepath = "predicted-treecrowns-w-predicted-species/delta.geojson",
-              seedling_plot_filepath = "regen-plots-standardized/delta.gpkg",
+              overstory_tree_filepath = paste0("predicted-treecrowns-w-predicted-species/", site_name, ".geojson"),
+              seedling_plot_filepath = paste0("regen-plots-standardized/", site_name, ".gpkg"),
               target_crs = 3310, 
               seedling_plot_area = 201,
               min_tree_height = 10, # ignore trees shorter than this
@@ -120,62 +81,8 @@ disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. 
 ) 
 
 
-# First test that the different dispersal kernels work 
-settings_to_use = list(lik_distrib = "negbin", 
-                        disp_kernel = "exppow", 
-                        fecundity_fn = "linear", 
-                        optimizer = NULL)
-m1 <- fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
-                   fixed_pars = NULL, parscale = c(1,10,10,1), 
-                   disp_data = disp_data, settings = settings_to_use)
 
-settings_to_use = list(lik_distrib = "negbin", 
-                       disp_kernel = "2Dt", 
-                       fecundity_fn = "linear", 
-                       optimizer = NULL)
-m2 = fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
-                  fixed_pars = NULL, parscale = c(1,10,10,1), 
-                  disp_data = disp_data, settings = settings_to_use)
-
-settings_to_use = list(lik_distrib = "negbin", 
-                       disp_kernel = "lognormal", 
-                       fecundity_fn = "linear", 
-                       optimizer = NULL)
-m3 = fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
-                  fixed_pars = NULL, parscale = c(1,10,10,1), 
-                  disp_data = disp_data, settings = settings_to_use)
-
-settings_to_use = list(lik_distrib = "negbin", 
-                       disp_kernel = "wald", 
-                       fecundity_fn = "linear", 
-                       optimizer = NULL)
-m4 = fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
-                  fixed_pars = NULL, parscale = c(1,10,10,1), 
-                  disp_data = disp_data, settings = settings_to_use)
-
-
-# Set up a grid of values for the parameters and settings 
-names(settings)
-lik_distrib_vals = c("pois", "negbin")
-disp_kernel_vals = c("exppow", "2Dt", "lognormal", "wald")
-fecundity_fn_vals = c("linear", "exponential")
-model_options_grid = expand_grid(disp_kernel_vals, lik_distrib_vals, fecundity_fn_vals)
-
-# Fit models for all specified combos of settings
-model_fits <- fit_model_wrapper_fn(model_options_grid)
-
-# Get the AIC values 
-model_AIC <- lapply(model_fits, f <- function(m) return(2*m$negloglik + 2*m$model_info$n_parameters))
-model_options_grid$AIC <- unlist(model_AIC)
-
-ggplot(model_options_grid, aes(x = disp_kernel_vals, y = AIC, color = lik_distrib_vals)) + geom_point() + theme_bw()
-
-# just look at the negative binomial fits which are always better 
-model_options_grid |> 
-  filter(lik_distrib_vals == "negbin") |> 
-  ggplot(aes(x = disp_kernel_vals, y = AIC, color = fecundity_fn_vals)) + geom_point() + theme_bw()
-
-#### Try parallelizing the model fitting loop 
+#### Parallelize the model fitting loop 
 
 library(foreach)
 library(doParallel)
@@ -201,4 +108,21 @@ model_options_grid$AIC <- unlist(model_AIC)
 model_options_grid$k = unlist(lapply(model_fits, f <- function(m) return(m$estimates$k)))
 model_options_grid$a = unlist(lapply(model_fits, f <- function(m) return(m$estimates$a)))
 model_options_grid$b = unlist(lapply(model_fits, f <- function(m) return(m$estimates$b)))
-model_options_grid$theta = unlist(lapply(model_fits, f <- function(m) return(m$estimates$theta)))
+
+unlist(lapply(model_fits, f <- function(m) return(m$estimates$zeta)))
+
+# Make plots 
+ggplot(model_options_grid, aes(x = disp_kernel_vals, y = AIC, 
+  color = lik_distrib_vals, shape = fecundity_fn_vals)) + 
+  geom_point(size = 2) + theme_bw() + labs(x = "Dispersal Kernel") + 
+  scale_color_discrete(name = "Likelihood type") + 
+  scale_shape_discrete(name = "Fecundity function")
+
+# Just plot the negative binomial fits which are always better 
+model_options_grid |> 
+  filter(lik_distrib_vals == "negbin") |> 
+  ggplot(aes(x = disp_kernel_vals, y = AIC, color = fecundity_fn_vals)) + 
+  geom_point() + theme_bw() + labs(x = "Dispersal Kernel") + 
+  scale_color_discrete(name = "Likelihood type")
+
+
