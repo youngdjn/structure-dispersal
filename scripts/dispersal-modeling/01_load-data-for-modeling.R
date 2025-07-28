@@ -33,19 +33,29 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   require(terra)
   
   ### Load the overstory tree and seedling data for the specified site
-  overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) |>
+  overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) |> 
     st_transform(target_crs)
-  seedling_plots = st_read(file.path(data_dir, seedling_plot_filepath)) |>
+  seedling_plots = st_read(file.path(data_dir, seedling_plot_filepath)) |> 
     st_transform(target_crs)
   
   # Convert overstory polys to points 
   # (may want to make this optional in case tree locations are already points)
   overstory_trees = st_centroid(overstory_trees)
   
-  # Filter overstory to exclude SNAG and include only the focal species
-  overstory_trees_all = overstory_trees |>
-    filter(!(pred_class_ID %in% c("SNAG", "unknown")))
+  # Filter overstory to exclude SNAG and trees smaller than 10m tall 
+  overstory_trees = overstory_trees |>
+    filter(pred_class_ID != c("SNAG"), Z >= min_tree_height)
   
+  # Get tree density raster for focal area -- using all live trees 
+  cat("\n Calculating tree density raster")
+  tree_density <- get_tree_density(overstory_trees, 
+                                   seedling_plots, density_raster_resolution)
+
+  # Remove unknown trees 
+  overstory_trees <- overstory_trees |> 
+    filter(pred_class_ID != "unknown")
+  
+  # Filter overstory to include only the focal species
   if (focal_species == "PINES") {
     overstory_trees = overstory_trees |>
       filter(pred_class_ID %in% c("PIPJ", "PILA"))
@@ -57,21 +67,17 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
       filter(pred_class_ID == focal_species)
   } 
   
+  # Extract tree density data for the plot and tree locations 
+  overstory_trees$tree_density = terra::extract(tree_density, overstory_trees, method = "bilinear")$count
+  seedling_plots$tree_density = terra::extract(tree_density, seedling_plots, method = "bilinear")$count
+  
   # Download elevation raster for focal area
   elev <- get_dem_data(overstory_trees, seedling_plots)
     
   # extract elevation data for the plot and tree locations 
   overstory_trees$elevation = terra::extract(elev, overstory_trees)
   seedling_plots$elevation = terra::extract(elev, seedling_plots)
-  
-  # Get tree density raster for focal area 
-  cat("\n Calculating tree density raster")
-  tree_density <- get_tree_density(overstory_trees_all, 
-                                     seedling_plots, density_raster_resolution)
-  
-  # extract tree density data for the plot and tree locations 
-  overstory_trees$tree_density = terra::extract(tree_density, overstory_trees, method = "bilinear")$count
-  seedling_plots$tree_density = terra::extract(tree_density, seedling_plots, method = "bilinear")$count
+
  
   ### Prep overstory tree data: columns ID, x and y location, and size
   cat("Prepping overstory tree data")
