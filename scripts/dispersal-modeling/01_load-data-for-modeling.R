@@ -24,10 +24,10 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
                                 target_crs, # target CRS (to project the raw data sources to)
                                 seedling_plot_area, # area of the plot in sq m
                                 min_tree_height, # ignore trees shorter than this
-                                density_raster_resolution, # grid cell size for calculating local tree density 
+                                density_raster_resolution = NULL, # grid cell size for calculating local tree density -- leave as NULL if not calculating density 
                                 tree_distance_cutoff # ignore trees farther than this from a plot
-                                
-) {
+) 
+{
   
   require(sf)
   require(terra)
@@ -55,22 +55,23 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   } else if (focal_species != "ALL") {
     overstory_trees = overstory_trees |>
       filter(pred_class_ID == focal_species)
-  }
+  } 
   
-  # download elevation raster for focal area
+  # Download elevation raster for focal area
   elev <- get_dem_data(overstory_trees, seedling_plots)
-  
+    
   # extract elevation data for the plot and tree locations 
   overstory_trees$elevation = terra::extract(elev, overstory_trees)
   seedling_plots$elevation = terra::extract(elev, seedling_plots)
   
-  # get tree density raster for focal area 
+  # Get tree density raster for focal area 
   cat("\n Calculating tree density raster")
-  tree_density <- get_tree_density(overstory_trees_all, seedling_plots, density_raster_resolution)
+  tree_density <- get_tree_density(overstory_trees_all, 
+                                     seedling_plots, density_raster_resolution)
   
   # extract tree density data for the plot and tree locations 
-  overstory_trees$tree_density = terra::extract(tree_density, overstory_trees)$count
-  seedling_plots$tree_density = terra::extract(tree_density, seedling_plots)$count
+  overstory_trees$tree_density = terra::extract(tree_density, overstory_trees, method = "bilinear")$count
+  seedling_plots$tree_density = terra::extract(tree_density, seedling_plots, method = "bilinear")$count
  
   ### Prep overstory tree data: columns ID, x and y location, and size
   cat("Prepping overstory tree data")
@@ -84,7 +85,6 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
     mutate(size = Z) # "size" is just the height
   
   overstory_trees = overstory_trees %>%
-    select(id = treeID, x, y, size, elevation, tree_density, Z) |>
     mutate(elevation_top = elevation + Z)
   
   overstory_tree_size <- overstory_trees$size
