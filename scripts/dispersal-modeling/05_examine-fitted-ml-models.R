@@ -4,7 +4,8 @@
 m1 = fit_model_ml(pars = startpars1, fixed_pars = "a", parscale = c(0.5, 10, 10, 0.5), disp_data = disp_data, settings = settings_to_use)
 
 
-m = m1 # choose model to plot
+#m = m1 # choose model to plot
+m = model_fits[[11]] # for ABCO at Delta, negbin lognormal with exp fecundity
 
 # Plot fitted vs observed 
 obspred_data <- data.frame(fitted = m$fitted.values, observed = disp_data$seedling_counts)
@@ -19,6 +20,13 @@ hist(obspred_data$resids)
 # plot dispersal kernel based on fitted parameters
 kernel_plot_data <- data.frame(Distance = 1:800, Probability = calculate_dispersal(distance = 1:800, pars = pars, kernel_type = "exppow"))
 ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
+
+# plot fecundity function 
+fecundity_plot_data <- data.frame(tree_height = seq(10, 30, by = 0.1)) |> 
+  mutate(fecundity = (tree_height * m$estimates$b))#^m$estimates$zeta)
+ggplot(fecundity_plot_data, aes(x = tree_height, y = fecundity)) + 
+  geom_line() + theme_bw()
+
 
 # visualize likelihood surface 
 kvals = seq(0.2, 0.7, by = 0.05)
