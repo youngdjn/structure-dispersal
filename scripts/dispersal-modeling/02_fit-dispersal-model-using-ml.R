@@ -20,8 +20,8 @@ focal_species = "PIPJ"
 # Load data 
 disp_data_dir = file.path(data_dir)
 disp_data = get_dispdata(data_dir = disp_data_dir, 
-                          site_name = "valley", # e.g. "delta"
-                          focal_species = "ABCO", # 4-letter code
+                          site_name = site_name, # e.g. "delta"
+                          focal_species = focal_species, # 4-letter code
                           overstory_tree_filepath = paste0("predicted-treecrowns-w-predicted-species/", site_name, ".geojson"),
                               # relative to `datadir`
                           seedling_plot_filepath = paste0("regen-plots-standardized/", site_name, ".gpkg"), 
@@ -30,7 +30,7 @@ disp_data = get_dispdata(data_dir = disp_data_dir,
                           seedling_plot_area = 201, # area of the plot in sq m
                           min_tree_height = 10, # ignore trees shorter than this (in meters)
                           density_raster_resolution = 10, # grid cell size for calculating local tree density in meters
-                          tree_distance_cutoff = 500 # ignore trees farther than this from a plot (meters)
+                          tree_distance_cutoff = 300 # ignore trees farther than this from a plot (meters)
                           
 )
 
