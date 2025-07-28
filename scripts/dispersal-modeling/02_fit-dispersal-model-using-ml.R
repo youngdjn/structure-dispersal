@@ -119,47 +119,86 @@ disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. 
               tree_distance_cutoff = tree_distance_cutoff # ignore trees farther than this from a plot
 ) 
 
+
+# First test that the different dispersal kernels work 
+settings_to_use = list(lik_distrib = "negbin", 
+                        disp_kernel = "exppow", 
+                        fecundity_fn = "linear", 
+                        optimizer = NULL)
+m1 <- fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
+                   fixed_pars = NULL, parscale = c(1,10,10,1), 
+                   disp_data = disp_data, settings = settings_to_use)
+
+settings_to_use = list(lik_distrib = "negbin", 
+                       disp_kernel = "2Dt", 
+                       fecundity_fn = "linear", 
+                       optimizer = NULL)
+m2 = fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
+                  fixed_pars = NULL, parscale = c(1,10,10,1), 
+                  disp_data = disp_data, settings = settings_to_use)
+
+settings_to_use = list(lik_distrib = "negbin", 
+                       disp_kernel = "lognormal", 
+                       fecundity_fn = "linear", 
+                       optimizer = NULL)
+m3 = fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
+                  fixed_pars = NULL, parscale = c(1,10,10,1), 
+                  disp_data = disp_data, settings = settings_to_use)
+
+settings_to_use = list(lik_distrib = "negbin", 
+                       disp_kernel = "wald", 
+                       fecundity_fn = "linear", 
+                       optimizer = NULL)
+m4 = fit_model_ml(pars = list(k = 1, a = 10, b = 10, theta = 1), 
+                  fixed_pars = NULL, parscale = c(1,10,10,1), 
+                  disp_data = disp_data, settings = settings_to_use)
+
+
 # Set up a grid of values for the parameters and settings 
 names(settings)
 lik_distrib_vals = c("pois", "negbin")
 disp_kernel_vals = c("exppow", "2Dt", "lognormal", "wald")
 fecundity_fn_vals = c("linear", "exponential")
-
 model_options_grid = expand_grid(disp_kernel_vals, lik_distrib_vals, fecundity_fn_vals)
 
+# Fit models for all specified combos of settings
 model_fits <- fit_model_wrapper_fn(model_options_grid)
 
-# Function to convert the model options grid settings to input for model fitting 
-fit_model_wrapper_fn <- function(model_options_grid) {
+# Get the AIC values 
+model_AIC <- lapply(model_fits, f <- function(m) return(2*m$negloglik + 2*m$model_info$n_parameters))
+model_options_grid$AIC <- unlist(model_AIC)
 
-  settings_to_use = list(lik_distrib = NULL, disp_kernel = NULL, 
-                         fecundity_fn = NULL, optimizer = NULL) 
-  n_models <- nrow(model_options_grid)
-  model_list <- list(n_models) 
-  for (i in 1:n_models) {
-    print(paste("Running model", i, "of", n_models))
-    # supply settings values 
-    settings_to_use$lik_distrib = model_options_grid$lik_distrib_vals[i]
-    settings_to_use$fecundity_fn = model_options_grid$fecundity_fn_vals[i]
-    settings_to_use$disp_kernel = model_options_grid$disp_kernel_vals[i]
-    
-    # set initial parameters depending on model options 
-    pars_inits <- list("k" = 1, "a" = 10, "b" = 10)
-    parscale = c(1, 10, 10)
-    if (settings_to_use$fecundity_fn == "exponential") {
-      pars_inits$zeta = 1
-      parscale = c(parscale, 1)
-    }
-    if (settings_to_use$lik_distrib == "negbin") {
-      pars_inits$theta = 1
-      parscale = c(parscale, 1)
-    }
-    model_list[[i]] <- fit_model_ml(pars = pars_inits, 
-                                    fixed_pars = NULL, 
-                                    parscale = parscale,
-                                    disp_data = disp_data,
-                                    settings = settings_to_use)
-  }
-  return(model_list) 
-}
+ggplot(model_options_grid, aes(x = disp_kernel_vals, y = AIC, color = lik_distrib_vals)) + geom_point() + theme_bw()
 
+# just look at the negative binomial fits which are always better 
+model_options_grid |> 
+  filter(lik_distrib_vals == "negbin") |> 
+  ggplot(aes(x = disp_kernel_vals, y = AIC, color = fecundity_fn_vals)) + geom_point() + theme_bw()
+
+#### Try parallelizing the model fitting loop 
+
+library(foreach)
+library(doParallel)
+
+# How many cores to use in cluster
+n_cores <- detectCores()
+
+# Register cluster
+cluster <- makeCluster(n_cores - 2)
+registerDoParallel(cluster)
+
+model_fits <- fit_model_wrapper_fn_parallel(model_options_grid, disp_data)
+
+# Don't forget to stop the cluster
+stopCluster(cl = cluster)
+
+
+# Get the AIC values 
+model_AIC <- lapply(model_fits, f <- function(m) return(2*m$negloglik + 2*m$model_info$n_parameters))
+model_options_grid$AIC <- unlist(model_AIC)
+
+# compare parameter values 
+model_options_grid$k = unlist(lapply(model_fits, f <- function(m) return(m$estimates$k)))
+model_options_grid$a = unlist(lapply(model_fits, f <- function(m) return(m$estimates$a)))
+model_options_grid$b = unlist(lapply(model_fits, f <- function(m) return(m$estimates$b)))
+model_options_grid$theta = unlist(lapply(model_fits, f <- function(m) return(m$estimates$theta)))
