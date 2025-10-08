@@ -18,7 +18,7 @@ plot(resids~fitted, obspred_data)
 hist(obspred_data$resids)
 
 # plot dispersal kernel based on fitted parameters
-kernel_plot_data <- data.frame(Distance = 1:800, Probability = calculate_dispersal(distance = 1:800, pars = pars, kernel_type = "exppow"))
+kernel_plot_data <- data.frame(Distance = 1:800, Probability = calculate_dispersal(distance = 1:800, pars = list(k = m$estimates$k, a = m$estimates$a), kernel_type = "exppow"))
 ggplot(kernel_plot_data, aes(x = Distance, y = Probability)) + geom_line()
 
 # plot fecundity function 
@@ -29,12 +29,12 @@ ggplot(fecundity_plot_data, aes(x = tree_height, y = fecundity)) +
 
 
 # visualize likelihood surface 
-kvals = seq(0.2, 0.7, by = 0.05)
-avals = seq(5, 120, by = 5)
+kvals = seq(0.1, 0.6, by = 0.05)
+avals = seq(5, 70, by = 2)
 bvals = 20
-#thetavals = 50
-parameter_test_set <- expand.grid(kvals, avals, bvals) 
-names(parameter_test_set) = par_structure
+thetavals = 50
+parameter_test_set <- expand.grid(kvals, avals, bvals, thetavals) 
+names(parameter_test_set) = c("k", "a", "b", "theta")
 head(parameter_test_set)
 fn_to_apply_negloglik <- function(param_test_vals, disp_data = disp_data, 
                                   settings = settings_to_use) {
@@ -51,8 +51,8 @@ lik_surface_data <- cbind(parameter_test_set, negloglikvals)
 head(lik_surface_data)
 hist(negloglikvals)
 
-# Where is the maximum? 
-lik_surface_data[which.max(lik_surface_data$negloglikvals),]
+# Where is the minimum? 
+lik_surface_data[which.min(lik_surface_data$negloglikvals),]
 
 # plot a 2D likelihood surface using negloglikvals data
 ggplot(lik_surface_data, aes(x = a, y = k, z = negloglikvals)) + 
@@ -87,6 +87,8 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 # Implement negbin likelihood - done 
 
 # Systematically test which data sets x likelihood types converge consistently to something biologically plausible, or at least do so from reasonable starting values. 
+# 
+# Think about how to reduce number of parameters in models. Can we limit a to a set of biologically reasonable values and fit the other parameters around that? Or switch to single-parameter dispersal models? 
 
 
 
