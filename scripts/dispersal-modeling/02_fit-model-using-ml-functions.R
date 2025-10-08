@@ -301,7 +301,7 @@ get_disp_data <- function(dataset_name, data_dir) # corresponding data files in 
 
 # Function to use a data frame representing a grid of model settings (made with expand.grid()) to fit models to the settings in each row of the data frame. 
 fit_model_wrapper_fn <- function(model_options_grid) {
-  #
+  
   #@model_options_grid -- data frame the rows of which contain model settings
   #
   #Value: a list of the output from fitted dispersal models, one per row of the model_options_grid data frame.
