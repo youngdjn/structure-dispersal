@@ -335,7 +335,10 @@ simulate_dispdata = function(domain_size = 800, # length of one side of simulate
     b,     # fecundity coefficient
     seedling_plot_area  # size of each plot in m²
   )
-  seedling_plots$seedling_counts = seed_rain$observed_seeds
+  # Add random mortality for transition to seedlings 
+  seedling_plots$seedling_counts = rbinom(n = n_plots,
+                   size = seed_rain$observed_seeds, 
+                   p = 0.15)
   
   
   ### Calculate distance matrix for distance between each overstory tree and each plot
