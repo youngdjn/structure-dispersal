@@ -6,7 +6,7 @@
 library(here)
 library(tidyverse)
 
-source("./scripts/dispersal-modeling/01_load-data-for-modeling.R")
+source("./scripts/dispersal-modeling/01_load-data-for-modeling_functions.R")
 source("./scripts/dispersal-modeling/02_fit-model-using-ml-functions.R")
 
 # Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
@@ -36,30 +36,48 @@ disp_data = get_dispdata(data_dir = disp_data_dir,
 
 # Alternatively: simulate a dataset 
 
-# disp_data = simulate_dispdata(domain_size = 800, # length of one side of simulated square "domain"
-#   center_buffer = 200, # distance from central area with trees to edge of "domain"
-#   trees_per_hectare = 100, # density of trees to simulate
-#   n_plots = 200, # number of seedling plots to simulate
-#   a = 30,     # scale parameter for exppow dispersal kernel
-#   k = 0.5,    # shape parameter for exppow dispersal kernel
-#   b = 10,     # fecundity coefficient
-#   seedling_plot_area = 201,  # size of each plot in m²
-#   elev_range = 100, # elevation range (m) for simulated DEM
-#   min_tree_height = 10, # min tree height (m) for simulation
-#   max_tree_height = 30, # max tree height (m) for simulation
-#   density_raster_resolution = 15, # grid cell size for calculating local tree density
-#   tree_distance_cutoff = 300 # ignore trees farther than this from a plot
-# )
+disp_data = simulate_dispdata(domain_size = 800, # length of one side of simulated square "domain"
+  center_buffer = 200, # distance from central area with trees to edge of "domain"
+  trees_per_hectare = 100, # density of trees to simulate
+  n_plots = 200, # number of seedling plots to simulate
+  a = 30,     # scale parameter for exppow dispersal kernel
+  k = 0.5,    # shape parameter for exppow dispersal kernel
+  b = 10,     # fecundity coefficient
+  seedling_plot_area = 201,  # size of each plot in m²
+  elev_range = 100, # elevation range (m) for simulated DEM
+  min_tree_height = 10, # min tree height (m) for simulation
+  max_tree_height = 30, # max tree height (m) for simulation
+  density_raster_resolution = 15, # grid cell size for calculating local tree density
+  tree_distance_cutoff = 300 # ignore trees farther than this from a plot
+)
 
-# Set some diffent initial parameter values to check convergence
-startpars1 = list(k = 0.5, a = 10, b = 10, theta = 1)
+# Set some different initial parameter values to check convergence
+startpars1 = list(k = 0.5, a = 40, b = 10)
 startpars2 = list(k = 0.9, a = 10, b = 1, theta = 2)
+parscale = c(1, 10, 10)
+
+# Choose model control settings 
+# 
+# Documentation of settings needed to fit an ML model 
+# settings: a named list containing the values for all the options 
+#    available for model fitting. These include: 
+#    - lik_distrib = the data distribution for the model (pois or negbin)
+#    - disp_kernel = which dispersal kernel to use (exppow, 2Dt, lognomal, wald)
+#    - fecundity_fn = which fecundity function to use (linear or exponential)
+#    - optimizer = which optimizer to tell optim to use (BFGS, Nelder-Mead, etc)
+#                   NOTE: Currently this only uses SANN to be able to constrain 
+#                                some params, so this setting is ignored.
+
+settings = list(lik_distrib = "pois", disp_kernel = "exppow", fecundity_fn = "linear", optimizer = NULL)
+
+m <- fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = parscale, disp_data = disp_data, settings = settings)
+
 
 ##### Compare among dispersal kernels and fecundity functions 
 
 # Choose a species and site (only one at a time for now)
 site_name = "delta"
-focal_species = "ALL"
+focal_species = "PIPJ"
 
 # Choose tree distance cutoff in m (beyond this assume zero seed dispersal)
 tree_distance_cutoff = 300 
@@ -78,7 +96,7 @@ disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. 
               min_tree_height = 10, # ignore trees shorter than this
               density_raster_resolution = 10, 
               tree_distance_cutoff = tree_distance_cutoff # ignore trees farther than this from a plot
-) ß
+)
 
 #### Parallelize the model fitting loop 
 
