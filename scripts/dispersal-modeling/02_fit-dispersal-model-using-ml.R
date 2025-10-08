@@ -78,33 +78,21 @@ disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. 
               min_tree_height = 10, # ignore trees shorter than this
               density_raster_resolution = 10, 
               tree_distance_cutoff = tree_distance_cutoff # ignore trees farther than this from a plot
-) 
-
-
+) ß
 
 #### Parallelize the model fitting loop 
 
 library(foreach)
 library(doParallel)
 
-# How many cores to use in cluster
-n_cores <- detectCores()
-
-# Register cluster
-cluster <- makeCluster(n_cores - 2)
-registerDoParallel(cluster)
-
+# Fit the models 
 model_fits <- fit_model_wrapper_fn_parallel(model_options_grid, disp_data)
 
-# Don't forget to stop the cluster
-stopCluster(cl = cluster)
-
-
-# Get the AIC values 
+# Get AIC values 
 model_AIC <- lapply(model_fits, f <- function(m) return(2*m$negloglik + 2*m$model_info$n_parameters))
 model_options_grid$AIC <- unlist(model_AIC)
 
-# compare parameter values 
+# Compare parameter values 
 model_options_grid$k = unlist(lapply(model_fits, f <- function(m) return(m$estimates$k)))
 model_options_grid$a = unlist(lapply(model_fits, f <- function(m) return(m$estimates$a)))
 model_options_grid$b = unlist(lapply(model_fits, f <- function(m) return(m$estimates$b)))
