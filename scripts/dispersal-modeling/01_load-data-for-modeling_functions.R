@@ -394,8 +394,8 @@ simulate_dispdata = function(domain_size = 800, # length of one side of simulate
     elev_diff_vector = elevdiff_cutoff_vec,
     tree_density_vector = tree_density_vec,
     tree_size_vector = tree_size_vec, 
-    seedling_counts = seedling_counts, 
-    n_plots = length(seedling_counts))
+    seedling_counts = seedling_plots$seedling_counts, 
+    n_plots = nrow(seedling_plots))
   
   return(disp_data)
 }
