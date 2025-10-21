@@ -210,7 +210,7 @@ fit_model_ml <- function(pars, fixed_pars = NULL, parscale = NULL, disp_data, se
                 fn = calculate_negloglik,
                 control = list(trace = 1, maxit = 5000, 
                                lower = lower, upper = upper, 
-                               parscale =parscale),
+                               parscale = parscale),
                 disp_data = disp_data,
                 settings = settings)
   
@@ -303,6 +303,7 @@ get_disp_data <- function(dataset_name, data_dir) # corresponding data files in 
 fit_model_wrapper_fn <- function(model_options_grid) {
   
   #@model_options_grid -- data frame the rows of which contain model settings
+  #                   -- 
   #
   #Value: a list of the output from fitted dispersal models, one per row of the model_options_grid data frame.
   
