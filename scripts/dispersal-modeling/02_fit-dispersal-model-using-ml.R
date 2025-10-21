@@ -9,29 +9,29 @@ library(tidyverse)
 source("./scripts/dispersal-modeling/01_load-data-for-modeling_functions.R")
 source("./scripts/dispersal-modeling/02_fit-model-using-ml-functions.R")
 
-# Set data directory -- detect whether on Jetstream vs Andrew's machine and set accordingly
+# Set data directory -- first detect whether on Jetstream vs Andrew's machine
 if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt"), n = 1) else data_dir = readLines(here("data_dir.txt"), n = 1)
 
 # Choose site and species 
 site_name = "delta"
-focal_species = "PIPJ"
+focal_species = "ABCO"
 # NOTE FOR NOW THE PLOT DATA IS NOT BROKEN OUT BY SPECIES EXCEPT FOR DELTA! 
 
 # Load data 
 disp_data_dir = file.path(data_dir)
+
 disp_data = get_dispdata(data_dir = disp_data_dir, 
-                          site_name = site_name, # e.g. "delta"
-                          focal_species = focal_species, # 4-letter code
-                          overstory_tree_filepath = paste0("predicted-treecrowns-w-predicted-species/", site_name, ".geojson"),
+    site_name = site_name, # e.g. "delta"
+    focal_species = focal_species, # 4-letter code
+    overstory_tree_filepath = paste0("predicted-treecrowns-w-predicted-species/", site_name, ".geojson"),
                               # relative to `datadir`
-                          seedling_plot_filepath = paste0("regen-plots-standardized/", site_name, ".gpkg"), 
+    seedling_plot_filepath = paste0("regen-plots-standardized/", site_name, ".gpkg"), 
                               # relative to `datadir`
-                          target_crs = 3310, # target CRS (to project the raw data sources to)
-                          seedling_plot_area = 201, # area of the plot in sq m
-                          min_tree_height = 10, # ignore trees shorter than this (in meters)
-                          density_raster_resolution = 10, # grid cell size for calculating local tree density in meters
-                          tree_distance_cutoff = 300 # ignore trees farther than this from a plot (meters)
-                          
+    target_crs = 3310, # target CRS (to project the raw data sources to)
+    seedling_plot_area = 201, # area of the plot in sq m
+    min_tree_height = 10, # ignore trees shorter than this (in meters)
+    density_raster_resolution = 10, # grid cell size for calculating local tree density in meters
+    tree_distance_cutoff = 300 # ignore trees farther than this from a plot (meters)
 )
 
 # Alternatively: simulate a dataset 
@@ -52,7 +52,7 @@ disp_data = simulate_dispdata(domain_size = 800, # length of one side of simulat
 )
 
 # Set some different initial parameter values to check convergence
-startpars1 = list(k = 0.5, a = 40, b = 10)
+startpars1 = list(k = 0.5, a = 40, b = 10, theta = 1)
 startpars2 = list(k = 0.9, a = 10, b = 1, theta = 2)
 parscale = c(1, 10, 10)
 
@@ -68,9 +68,9 @@ parscale = c(1, 10, 10)
 #                   NOTE: Currently this only uses SANN to be able to constrain 
 #                                some params, so this setting is ignored.
 
-settings = list(lik_distrib = "pois", disp_kernel = "exppow", fecundity_fn = "linear", optimizer = NULL)
+settings = list(lik_distrib = "negbin", disp_kernel = "exppow", fecundity_fn = "linear", optimizer = NULL)
 
-m <- fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = parscale, disp_data = disp_data, settings = settings)
+m2 <- fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = parscale, disp_data = disp_data, settings = settings)
 
 
 ##### Compare among dispersal kernels and fecundity functions 
