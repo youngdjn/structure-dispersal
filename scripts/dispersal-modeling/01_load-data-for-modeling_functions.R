@@ -322,8 +322,6 @@ simulate_dispdata = function(domain_size = 800, # length of one side of simulate
     mutate(id = 1:nrow(overstory_trees)) |>
     mutate(elevation_top = elevation + height)
   
-  overstory_tree_size <- overstory_trees$size
-  
   # Simulate the seedling data 
   # NOTE NEED TO UPDATE TO INCORPORATE ELEV_DIFF AND TREE_DENSITY 
   # Simulate dispersal from the trees to the plots 
@@ -378,7 +376,7 @@ simulate_dispdata = function(domain_size = 800, # length of one side of simulate
   
   # Create a long vector of tree sizes corresponding to each overstory tree
   # (indexed by the "n_nonNA" and "pos" vectors)
-  tree_size_vecfull = rep(overstory_trees$size, nrow(seedling_plots))
+  tree_size_vecfull = rep(overstory_trees$height, nrow(seedling_plots))
   tree_size_vec = tree_size_vecfull[!is.na(r_cutoff_vecfull)]
 
   ## Create the standard data object for modeling and return it
