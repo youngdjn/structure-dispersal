@@ -228,6 +228,7 @@ fit_model_ml <- function(pars, fixed_pars = NULL, parscale = NULL, disp_data, se
     estimates = estimates,
     negloglik = fit$value,
     fitted.values = fitted_values,
+    observed.values = disp_data$seedling_counts,
     call = cl,
     
     # Optimization details
