@@ -118,6 +118,7 @@ evaluate_model_fit <- function(model,
     sensitivity <- tp / (tp + fn)  # true positive rate
     specificity <- tn / (tn + fp)  # true negative rate
     precision <- tp / (tp + fp)
+    F1 <- 2*tp / (2*tp + fp + fn) 
     
   } else {
     # Handle case where only one class is present
@@ -140,6 +141,7 @@ evaluate_model_fit <- function(model,
     sensitivity = sensitivity,
     specificity = specificity,
     precision = precision,
+    F1 = F1,
     AUC = auc_value
   )
   
