@@ -124,6 +124,17 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 
 library(ggspatial)
 
+# Set file paths and crs
+data_dir = "/Users/latimer/Library/CloudStorage/Box-Box"
+site_name = "delta"
+#focal_species = "PILA"
+overstory_tree_filepath = paste0("dev/str-disp_drone-data-v2/predicted-treecrowns-w-predicted-species/", site_name, ".geojson")
+seedling_plot_filepath = paste0("str-disp_data/regen-plots-standardized/", site_name, ".gpkg")
+target_crs = 3310
+seedling_plot_area = 201
+min_tree_height = 10
+
+
 # Load the data 
 ### Load the overstory tree and seedling data for the specified site
 overstory_trees = st_read(file.path(data_dir, overstory_tree_filepath)) |> 
