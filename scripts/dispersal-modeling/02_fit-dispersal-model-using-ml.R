@@ -3,7 +3,7 @@
 
 #### Setup ####
 
-library(here)
+library(here) 
 library(tidyverse)
 
 source("./scripts/dispersal-modeling/01_load-data-for-modeling_functions.R")
@@ -14,7 +14,8 @@ if (grep("latimer", here()) == 1) data_dir = readLines(here("data_dir_andrew.txt
 
 # Choose site and species 
 site_name = "delta"
-focal_species = "ABCO"
+
+focal_species = "PIPJ"
 # NOTE FOR NOW THE PLOT DATA IS NOT BROKEN OUT BY SPECIES EXCEPT FOR DELTA! 
 
 # Load data 
@@ -52,7 +53,7 @@ disp_data = simulate_dispdata(domain_size = 800, # length of one side of simulat
 )
 
 # Set some different initial parameter values to check convergence
-startpars1 = list(k = 0.5, a = 40, b = 10, theta = 1)
+startpars1 = list(k = 0.7, a = 40, b = 10, theta = 1)
 startpars2 = list(k = 0.9, a = 10, b = 1, theta = 2)
 parscale = c(1, 10, 10)
 
@@ -70,7 +71,11 @@ parscale = c(1, 10, 10)
 
 settings = list(lik_distrib = "negbin", disp_kernel = "exppow", fecundity_fn = "linear", optimizer = NULL)
 
-m2 <- fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = parscale, disp_data = disp_data, settings = settings)
+m1 <- fit_model_ml(pars = startpars1, fixed_pars = NULL, parscale = parscale, disp_data = disp_data, settings = settings)
+m2 <- fit_model_ml(pars = startpars2, fixed_pars = NULL, parscale = parscale, disp_data = disp_data, settings = settings)
+m3 <- fit_model_ml(pars = startpars1, fixed_pars = "k", parscale = parscale, disp_data = disp_data, settings = settings)
+
+
 
 
 ##### Compare among dispersal kernels and fecundity functions 
@@ -102,6 +107,9 @@ disp_data = get_dispdata(data_dir = data_dir, # base level for data files (e.g. 
 
 library(foreach)
 library(doParallel)
+
+# Make a grid of parameter values k, a, and b 
+
 
 # Fit the models 
 model_fits <- fit_model_wrapper_fn_parallel(model_options_grid, disp_data)
