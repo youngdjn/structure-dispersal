@@ -210,11 +210,12 @@ get_dem_data <- function(overstory_trees, seedling_plots) {
     st_combine() |> 
     st_buffer(100) |> 
     st_simplify()
-  bound = st_union(bound_trees, bound_plots)
+  bound = st_union(bound_trees, bound_plots) |> 
+    st_as_sf()
 
   # download the DEM 
-  elev = get_elev_raster(bound |> st_as_sf(), z = 14, prj = 4326, src = "aws")
-
+  elev = get_elev_raster(bound, z = 14, prj = 4326, src = "aws")
+  
   return(elev)
 }
 
