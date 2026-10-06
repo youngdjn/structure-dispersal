@@ -18,6 +18,10 @@
 
 
 
+model_results = evaluate_model_fit(m1, disp_data = disp_data, threshold = 6, make_plots = TRUE, plot_dir = "/Users/Latimer/Desktop") 
+
+
+
 # Functions for evaluating dispersal model performance
 # Includes both in-sample evaluation and cross-validation
 
