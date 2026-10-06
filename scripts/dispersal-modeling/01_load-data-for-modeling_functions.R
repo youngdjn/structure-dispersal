@@ -1,8 +1,9 @@
 # Functions that load data on tree locations and seedling plots, 
 #   and package into standard data object for modeling. 
-# -- they generate a DEM and elevation data 
-# -- they generate a tree density raster
-# -- they package data up into full matrices and into sparse long vector format 
+# In addition they calculate 
+# -- they download a DEM and extract elevation data 
+# -- they produce a tree density raster and extract as a potential covariate
+# -- they package data up into both full matrix and sparse long vector formats
 
 # Main functions
 #   - get_dispdata() -- formats data from existing drone-derived tree maps
@@ -15,7 +16,12 @@
 
 ### Loading existing tree and plot data 
 
-# Function get_dispdata() outputs a large data object with tree and plot information, plus distances, tree density, and elevation. It contains the data in both full matrix formats and ragged array formats. Rather than writing to file, it keeps the result in memory for immediately passing to the model fitting function. This allows testing how the data prep parameters affect inferences. 
+# Function get_dispdata() outputs a large data object with tree and plot 
+#   information, plus distances, tree density, and elevation. 
+#   It contains the data in both full matrix formats and ragged array formats. 
+#   Rather than writing to file, it keeps the result in memory for immediately 
+#     passing to the model fitting function. 
+#  This allows testing how the data prep parameters affect inferences.
 
 get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/str-disp_data")
                                 site_name, # e.g. "delta"
@@ -50,9 +56,10 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   # Get tree density raster for focal area -- using all live trees 
   cat("\n Calculating tree density raster")
   tree_density <- get_tree_density(overstory_trees, 
-                                   seedling_plots, density_raster_resolution)
+                                   seedling_plots, 
+                                   density_raster_resolution)
 
-  # Remove unknown trees 
+  # Remove trees that have been classified as "unknown"
   overstory_trees <- overstory_trees |> 
     filter(pred_class_ID != "unknown")
   
@@ -69,8 +76,12 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   } 
   
   # Extract tree density data for the plot and tree locations 
-  overstory_trees$tree_density = terra::extract(tree_density, overstory_trees, method = "bilinear")$count
-  seedling_plots$tree_density = terra::extract(tree_density, seedling_plots, method = "bilinear")$count
+  overstory_trees$tree_density = terra::extract(tree_density, 
+                                                overstory_trees, 
+                                                method = "bilinear")$count
+  seedling_plots$tree_density = terra::extract(tree_density, 
+                                               seedling_plots, 
+                                               method = "bilinear")$count
   
   # Download elevation raster for focal area
   elev <- get_dem_data(overstory_trees, seedling_plots)
@@ -89,11 +100,13 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   # only keep trees > minimum tree height 
   overstory_trees = overstory_trees %>%
     filter(Z > min_tree_height) %>%
-    mutate(size = Z) # "size" is just the height
+    mutate(size = Z) # note "size" here means height (m)
   
+  # Calculate absolute elevation of treetops
   overstory_trees = overstory_trees %>%
     mutate(elevation_top = elevation + Z)
   
+  # Standalone vector of tree sizes
   overstory_tree_size <- overstory_trees$size
   
   # Prep seedling data with columns: plot id, x and y position, seedling count
@@ -105,6 +118,7 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   # Specify the column name for the observed count based on the focal species
   count_col = paste0("count_", focal_species)
   
+  # Trim seedling plot data frame
   seedling_plots = seedling_plots %>%
     dplyr::select(x, y, observed_count = any_of(count_col), elevation)
 
@@ -123,33 +137,43 @@ get_dispdata = function(data_dir, # base level for data files (e.g. "/ofo-share/
   ### Calculate distance matrix for distance between each overstory tree and each plot
   cat("\n Calculating distances")
   
-  d2min <- 0.01
-  
+  d2min <- 0.01 # Add minimum to avoid potential calculation errors at 
+                    # zero distance values (could potentially remove)
+
   dist_sq = outer(seedling_plots$x, overstory_trees$x, "-")^2 +
     outer(seedling_plots$y, overstory_trees$y, "-")^2
   dist_sq[dist_sq < d2min] <- d2min # Is this step necessary?
   
-  r <- sqrt(dist_sq)
+  r <- sqrt(dist_sq) # distance matrix
   
-  # Any distances > tree_distance_cutoff  get set to NA
+  # Set any distances > maximum distance to NA to sparsify matrix for efficiency
   r_cutoff = ifelse(r > tree_distance_cutoff, 0, r)
   r_cutoff = ifelse(r_cutoff == 0, NA, r)
   
+  ### REMOVED from Derek's original since models run without dummy trees 
   ## Add one dummy tree at tree_distance_cutoff m distance to each plot, so there are no plots with zero trees
   #r_cutoff = cbind(r_cutoff, rep(tree_distance_cutoff, nrow(r_cutoff)))
   
-  # -- Prepare the objects needed to pass a "ragged matrix" of pairwise distances to stan 
+  # -- Prepare "ragged matrix" of pairwise distances for stan or ML fitting
+  
   #number of non-NA values (overstory tree distances) per row (i.e. per seedling plot)
   cat("\n Prepping ragged data")
   n_nonNA = rowSums(!is.na(r_cutoff))
   r_cutoff_vecfull = as.vector(t(r_cutoff))
-  r_cutoff_vec = r_cutoff_vecfull[!is.na(r_cutoff_vecfull)] # 1-D vector of all the non-NA values
-  # index of the first non-NA value (tree distance) for each plot
+  
+  # make a 1-D vector of all the non-NA values
+  r_cutoff_vec = r_cutoff_vecfull[!is.na(r_cutoff_vecfull)] 
+
+  # Create index of the first non-NA value (tree distance) for each plot
+      # using the cumulative sum of number of tree distances for each plot
+      # pos contains the positions of the first tree distance corresponding to 
+      # each plot in the sparse vector of tree distances
   pos = cumsum(c(1, n_nonNA[-length(n_nonNA)]))
   
-  ### Calc elevation difference (treetop to plot) matrix
+  ### Calculate elevation difference matrix (treetops to plots)
   elev_diff = -outer(seedling_plots$elevation, overstory_trees$elevation_top, "-")
   
+  ### REMOVED from Derek's original since models run without dummy trees 
   ## Add one dummy tree at tree_distance_cutoff m distance with 0 height diff, so there are no plots with zero trees
   #elev_diff = cbind(elev_diff, rep(0, nrow(elev_diff)))
   
@@ -214,14 +238,16 @@ get_dem_data <- function(overstory_trees, seedling_plots) {
   bound = st_union(bound_trees, bound_plots) |> 
     st_as_sf()
 
-  # download the DEM 
+  # download the DEM at 10m resolution (should be 3DEP 10m product for US)
   elev = get_elev_raster(bound, z = 14, prj = 4326, src = "aws")
   
   return(elev)
 }
 
 ## Create a raster layer of tree density values for focal area 
-get_tree_density <- function(overstory_trees, seedling_plots, density_raster_resolution) {
+get_tree_density <- function(overstory_trees, 
+                             seedling_plots, 
+                             density_raster_resolution) {
   require(terra)
   require(sf)
   
@@ -405,7 +431,8 @@ simulate_dispdata = function(domain_size = 800, # length of one side of simulate
 
 
 ## Simulate the dispersal process 
-simulate_seed_rain <- function(tree_df, plot_df, 
+simulate_seed_rain <- function(tree_df, 
+                               plot_df, 
                                a, k, b, 
                                seedling_plot_area = 1
                                ) {
@@ -440,9 +467,13 @@ simulate_seed_rain <- function(tree_df, plot_df,
   # Apply kernel
   kernel_matrix <- exp_power_kernel(dist_matrix, a, k)
   
-  # Fecundity vector
+  # Calculate fecundity expected mean using linear height model
   mean_fecundity <- b * tree_df$height
-  fecundity <- rnorm(n = length(mean_fecundity), mean = mean_fecundity, sd = mean(mean_fecundity)/10)
+  # Generate number of seeds 
+  #   NOTE key parameter is the sd -- could explore effect of varying this
+  fecundity <- rnorm(n = length(mean_fecundity), 
+                     mean = mean_fecundity, 
+                     sd = mean(mean_fecundity)/10)
   
   # Expected seeds per plot (scaled by plot area)
   expected <- colSums(kernel_matrix * fecundity) * seedling_plot_area
@@ -450,7 +481,7 @@ simulate_seed_rain <- function(tree_df, plot_df,
   # Simulate observed seeds using Poisson
   observed <- rpois(n_plots, expected)
   
-  # Return augmented plot_df
+  # Return plot_df with seedling information (observed and expected)  
   out_df <- plot_df
   out_df$expected_seeds <- expected
   out_df$observed_seeds <- observed
