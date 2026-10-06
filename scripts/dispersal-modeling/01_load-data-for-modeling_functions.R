@@ -1,7 +1,8 @@
-# Functions that load data on tree locations and seedling plots, and package into standard data object for modeling. 
+# Functions that load data on tree locations and seedling plots, 
+#   and package into standard data object for modeling. 
 # -- they generate a DEM and elevation data 
 # -- they generate a tree density raster
-# -- they package data up into full matrices and into sparse long vector format. 
+# -- they package data up into full matrices and into sparse long vector format 
 
 # Main functions
 #   - get_dispdata() -- formats data from existing drone-derived tree maps
