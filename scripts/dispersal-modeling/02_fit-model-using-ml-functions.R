@@ -6,6 +6,15 @@
 # Function that applies dispersal and fecundity kernels to get the expected counts 
 #     or fitted values for a given set of parameter values. 
 calculate_expected_counts <- function(pars, disp_data, settings) {
+  #' @param pars - a named list containing the starting values for parameters
+  #'           of the dispersal kernel (k, a), fecundity function (b, zeta), 
+  #'           and the negative binomial likelihood dispersion parameter (theta)
+  #' @param settings - a named list containing the values for all the options 
+  #'    available for model fitting. 
+  #' @param disp_data -- a data object returned from get_disp_data() 
+  #'              or simulate_disp_data(). 
+  #' 
+  #' @value -- vector of expected seedling counts per plot 
   
   # Combine into expected counts per plot
   expected_counts <- numeric(disp_data$n_plots)
@@ -35,13 +44,13 @@ calculate_expected_counts <- function(pars, disp_data, settings) {
   return(expected_counts)
 }
 
-# Individual component functions
+# Functions to select the equations for dispersal and fecundity 
 calculate_fecundity <- function(height, pars, fecundity_type) {
   switch(fecundity_type,
          "linear" = pars$b * height,
          "exponential" = pars$b * height ^ pars$zeta
   )
-}
+} 
 
 calculate_dispersal <- function(distance, pars, kernel_type) {
   distance <- pmax(distance, 1e-6) # avoid zero distance values
@@ -50,7 +59,7 @@ calculate_dispersal <- function(distance, pars, kernel_type) {
   disp_probs = switch(kernel_type,
          "exppow" = exp(-(distance/a)^k)*k / 
                           (2 * pi * a^2 * gamma(2/k)), 
-         "2Dt" = ((k-1) / (pi * a^2)) * ((1 + distance^2) / a^2)^(-k),
+         "2Dt" = (k - 1) / (pi * a^2) * (1 + (distance / a)^2)^(-k),
          "lognormal" = dlnorm(distance, meanlog = a, sdlog = k) / 
                           (2 * pi * distance), 
                           # 1D lognormal with correction to convert to 2D
@@ -61,7 +70,7 @@ calculate_dispersal <- function(distance, pars, kernel_type) {
   return(disp_probs)
 }
 
-# Helper function to set up parameter structure 
+# Helper function to set up parameter structure for alternative kernels and distributions
 get_par_structure <- function(settings) {
   par_names <- character(0)
   
@@ -86,9 +95,9 @@ get_par_structure <- function(settings) {
 
 calculate_negloglik <- function(pars_vector, disp_data, settings) {
   
-  # First convert parameter vector from optim to a list to suppy to other functions
+  # First convert parameter vector from optim() to a list to supply to other functions
   
-  # Get parameter structure for this model configuration
+  # Get parameter structure for current model settings
   par_structure <- get_par_structure(settings)
   
   # Convert vector to named list
@@ -110,42 +119,37 @@ calculate_negloglik <- function(pars_vector, disp_data, settings) {
 ### Function to fit the model using optim
 fit_model_ml <- function(pars, fixed_pars = NULL, parscale = NULL, disp_data, settings)
 {
-  #ML fitting of an inverse model with source and path effects
-  #ARGUMENTS:
   #
-  # pars: a named list containing the starting values for parameters
-  #           of the dispersal kernel (k, a), fecundity function (b, zeta), 
-  #           and the negative binomial likelihood dispersion parameter (theta)
-  # 
-  # fixed_pars: vector of parameter names to hold constant at their starting value 
+  #' @param pars - a named list containing the starting values for parameters
+  #'           of the dispersal kernel (k, a), fecundity function (b, zeta), 
+  #'           and the negative binomial likelihood dispersion parameter (theta)
+  #' @param fixed_pars - vector of parameter names to hold constant at their starting value 
+  #' @param settings - a named list containing the values for all the options 
+  #'    available for model fitting. These include: 
+  #'    - lik_distrib = the data distribution for the model (pois or negbin)
+  #'    - disp_kernel = which dispersal kernel to use (exppow, 2Dt, lognomal, wald)
+  #'    - fecundity_fn = which fecundity function to use (linear or exponential)
+  #'    - optimizer = which optimizer to tell optim to use (BFGS, Nelder-Mead, etc)
+  #'                   NOTE: Currently this only uses SANN to be able to constrain 
+  #'                                some params, so this setting is ignored.
+  #' @param disp_data -- a data object returned from get_disp_data() 
+  #'              or simulate_disp_data(). Must include: 
+  #'               - n_overstory_trees, dist_vector, overstory_tree_size, pos
+  #'                  (in sparse/ragged form: pos points to the starting point of each 
+  #'                  plot's data in the vectors dist_vector and overstory_tree_size, 
+  #'                  and n_overstory_trees gives number of trees per plot. 
+  #'                - seedling_plot_area = area of plots (m)
+  #'                - seedling count = number of trees in each plot
+  #'                - n_plots = number of field plots with seedling counts. 
+  #'
+  #' @Value: list with components:
   #
-  # settings: a named list containing the values for all the options 
-  #    available for model fitting. These include: 
-  #    - lik_distrib = the data distribution for the model (pois or negbin)
-  #    - disp_kernel = which dispersal kernel to use (exppow, 2Dt, lognomal, wald)
-  #    - fecundity_fn = which fecundity function to use (linear or exponential)
-  #    - optimizer = which optimizer to tell optim to use (BFGS, Nelder-Mead, etc)
-  #                   NOTE: Currently this only uses SANN to be able to constrain 
-  #                                some params, so this setting is ignored.
-  #
-  # disp_data: a data object returned from get_disp_data() 
-  #              or simulate_disp_data(). Must include: 
-  #               - n_overstory_trees, dist_vector, overstory_tree_size, pos
-  #                  (in sparse/ragged form: pos points to the starting point of each 
-  #                  plot's data in the vectors dist_vector and overstory_tree_size, 
-  #                  and n_overstory_trees gives number of trees per plot. 
-  #                - seedling_plot_area = area of plots (m)
-  #                - seedling count = number of trees in each plot
-  #                - n_plots = number of field plots with seedling counts. 
-  #
-  #VALUE: list with components:
-  #
-  #estimates: a named list of maximum likelihood parameter estimates,
-  #           for each component parameters are in the same order as in startpars
-  #negloglik: the negative log likelihood of the fitted inverse model
-  #fitted.values: the fitted values for each seed trap
-  #call:      the matched call
-  #counts,convergence and message: the respective output of the optim function
+  #     - estimates: a named list of maximum likelihood parameter estimates,
+  #       for each component parameters are in the same order as in startpars
+  #     - negloglik: the negative log likelihood of the fitted inverse model
+  #     - fitted.values: the fitted values for each seed trap
+  #     - call: the matched call
+  #     - counts,convergence and message: the respective output of the optim function
   #           used to fit the inverse models
   
   require(pomp)
@@ -154,7 +158,7 @@ fit_model_ml <- function(pars, fixed_pars = NULL, parscale = NULL, disp_data, se
   cl <- match.call()
   
   # Convert list of parameters to the vector form needed by optim
-  #   Note this set depends on which model is fitted and number of parameters in it
+  #   Note this set depends on which model is fitted and number of parameters 
   
   # Check that parameter structure matches model settings
   par_names = names(pars)
@@ -300,13 +304,13 @@ get_disp_data <- function(dataset_name, data_dir) # corresponding data files in 
 }
 
 
-# Function to use a data frame representing a grid of model settings (made with expand.grid()) to fit models to the settings in each row of the data frame. 
+# Function to use a data frame representing a grid of model settings 
+#     made with expand.grid() to fit models to the settings in each row
 fit_model_wrapper_fn <- function(model_options_grid) {
-  
-  #@model_options_grid -- data frame the rows of which contain model settings
-  #                   -- 
-  #
-  #Value: a list of the output from fitted dispersal models, one per row of the model_options_grid data frame.
+  #' @param model_options_grid -- data frame the rows of which contain model settings
+  #'             
+  #' @Value: a list of the output from fitted dispersal models, 
+  #'          one per row of the model_options_grid data frame.
   
   settings_to_use = list(lik_distrib = NULL, disp_kernel = NULL, 
                          fecundity_fn = NULL, optimizer = NULL) 
@@ -342,12 +346,12 @@ fit_model_wrapper_fn <- function(model_options_grid) {
 # Function to use a data frame representing a grid of model settings (made with expand.grid()) to fit models to the settings in each row of the data frame. 
 # Uses foreach and doParallel to run the models in parallel. 
 fit_model_wrapper_fn_parallel <- function(model_options_grid, disp_data) {
-  #
-  #@model_options_grid -- data frame the rows of which contain model settings
-  #@disp_data -- dispersal modeling data object usually from load_dispdata()
-  #
-  #Value: a list of the output from fitted dispersal models, one per row of the model_options_grid data frame.
-  #
+  #' @param model_options_grid -- data frame the rows of which contain model settings
+  #' @param disp_data -- dispersal modeling data object usually from load_dispdata()
+  #'
+  #' @Value: a list of the output from fitted dispersal models, 
+  #       one per row of the model_options_grid data frame.
+  
   require(foreach)
   require(doParallel)
   
