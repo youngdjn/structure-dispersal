@@ -94,17 +94,18 @@ make_kernel_grid <- function(kernel = "exppow",
 #### Geometry: distance histograms ####
 
 # Distance bins: fine near the source, coarser farther out
-make_distance_breaks <- function(cutoff = 300) {
-  br <- c(seq(0, min(50, cutoff), by = 0.25))
-  if (cutoff > 50) br <- c(br, seq(50.5, cutoff, by = 0.5))
+#   70 is roughly where we expect dispersal to have dropped to low levels
+make_distance_breaks <- function(cutoff = 500) {
+  br <- c(seq(0, min(70, cutoff), by = 0.5))
+  if (cutoff > 70) br <- c(br, seq(71, cutoff, by = 1))
   if (max(br) < cutoff) br <- c(br, cutoff)
   br
 }
 
 # For each target point, the fecundity-weighted histogram of distances to trees within cutoff.
 # Returns an n_target x (2 * n_bins) matrix [H0 | H1]:
-#   H0 = sum of weights in each distance bin
-#   H1 = sum of weight * (distance - bin midpoint)
+#   H0 = sum of tree size based weights in each distance bin
+#   H1 = sum of size adjusted by distance: weight * (distance - bin midpoint)
 # so that sum_j w_j K(r_j) ~= H0 %*% K(mids) + H1 %*% K'(mids)  (first-order, near-exact)
 dist_histogram <- function(target_xy, tree_xy, w, breaks, chunk = 200) {
   target_xy <- as.matrix(target_xy)
