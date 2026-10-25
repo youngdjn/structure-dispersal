@@ -50,14 +50,14 @@ site_species = tribble(
   "delta",  "ABCO"
 )
 
-tree_distance_cutoff = 300   # m; trees farther than this contribute nothing
+tree_distance_cutoff = 500   # m; trees farther than this contribute nothing
 seedling_plot_area = 201     # m^2
 min_tree_height = 10         # m
 kernel = "exppow"            # "exppow" or "2Dt"
 zeta = 1                     # fecundity ~ height^zeta for the main analysis (1 = current linear model)
 stocking_threshold = 250     # seedlings/ha that counts as "adequately stocked" -- EDIT to the
                              #   threshold you want to use for management classification
-n_reps = 20                  # simulated datasets per true parameter set (try 5 for a first pass)
+n_reps = 5 # 20                  # simulated datasets per true parameter set (try 5 for a first pass)
 
 # True parameter sets to simulate: median dispersal distance (m) x shape.
 # exppow k: 0.5 = fat-tailed, 1 = exponential, 2 = Gaussian
@@ -148,3 +148,4 @@ write_csv(zeta_table, file.path(out_root, "zeta_profiles.csv"))
 # - zeta profiles: a flat profile (span of zeta values within the dashed line) means the
 #   size-fecundity relationship is not identified; use a fixed exponent from the literature
 #   or equal fecundity.
+
