@@ -99,10 +99,9 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 # Visualize likelihood surface. DONE - shows a ridge as expected based on a / k correlation. 
 # The model runs away to very unrealistic and extreme parameter combinations. TRY keeping b fixed. DONE - didn't help 
 # Check that model can recover params from simulation. DONE -- yes it can! 
+# Implement negbin likelihood - done 
 
 # Since simulations work to recover parameters, see if any of the data sets for the other 3 fires (other than Delta) can converge to reasonable parameter values. 
-
-# Implement negbin likelihood - done 
 
 # Systematically test which data sets x likelihood types converge consistently to something biologically plausible, or at least do so from reasonable starting values. 
 # 
@@ -116,10 +115,22 @@ ggplot(lik_surface_data, aes(x = b, y = k)) +
 # 5) Compare loo_cv of the 1- and 2- parameter models. 
 # 6) Compare binary classification result of the more and less complex models
 
-# NOTE there seems to be something wrong with the fixed parameters code. Fixing k always leads a to be at 100 (upper bound). May need to simply implement the exp kernel instead. 
+# NOTE there seems to be something wrong with the fixed parameters code. 
+#     Fixing k always leads a to be at 100 (upper bound). 
+#     May need to simply implement the exp kernel instead. 
 
+# ALSO: using fixed parameters means we have to use SANN for model fitting 
+#       which gives stochastic results with these data. 
 
-# Plot overstory trees and plots 
+# Options going forward: 
+#       Simplify the dispersal kernels 
+#       Use same dispersal kernels but only test for a few set values of the "k" or shape/tail parameter 
+#       Pivot back to using stan for model fitting with strong priors
+#       Simplify fecundity to fixed quantity and compare against linear fecundity model 
+
+# Other thoughts: 
+
+# Plot overstory trees and plots as visualization 
 
 
 library(ggspatial)
@@ -282,9 +293,9 @@ values(pred_categorical) <- cut(values(pred_raster),
 # Plot
 ggplot() +
   geom_spatraster(data = pred_categorical) +
-  scale_fill_manual(values = c("Weak (<50)" = "#fee5d9", 
-                               "Moderate (<250)" = "#fcae91", 
-                               "Strong (>250)" = "#fb6a4a"),
+  scale_fill_manual(values = c("Weak (<50)" = "white", 
+                               "Moderate (<250)" = "#e4e5e9", 
+                               "Strong (>250)" = "#c4e5e9"),
                     name = "Predicted\nRegeneration\nPotential\n (seedlings/ha)",
                     na.value = "white") +
   geom_sf(data = disp_data$overstory_trees, size = 0.5, alpha = 0.3) +
@@ -298,7 +309,7 @@ ggplot() +
 ##### Try plotting spatial classification success 
 
 # Show where the model got it right vs wrong
-plot_spatial_classification <- function(model_results, disp_data) {
+plot_spatial_classification <- function(eval_results, disp_data) {
   
   # Create data frame with plot locations and classification results
   plot_df <- data.frame(
@@ -396,3 +407,4 @@ plot_confusion_matrix <- function(eval_results, normalize = FALSE) {
 # Use it:
 plot_confusion_matrix(model_results, normalize = FALSE)
 plot_confusion_matrix(model_results, normalize = TRUE)  # as percentages
+
